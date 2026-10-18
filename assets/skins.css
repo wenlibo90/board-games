@@ -1,0 +1,184 @@
+/*
+  按棋种定制的页面皮肤（skins）
+  ------------------------------------------------------------
+  机制：外壳在打开某个棋局时，会在 <html> 上设置 data-game="<棋种 id>"。
+  于是可以为任意棋种编写独立风格，例如：
+      html[data-game="gomoku"] { --primary: ...; }
+      html[data-game="xiangqi"] { ... }
+  皮肤通过覆盖既有设计变量与组件样式实现，无需改动平台代码。
+  离开棋局（回到首页）时会移除 data-game，页面恢复默认明/暗主题。
+*/
+
+/* ==================== 五子棋页面皮肤 ==================== */
+html[data-game='gomoku'] {
+  --bg: #0f1219;
+  --bg-2: #0a0c12;
+  --surface: rgba(22, 28, 41, 0.75);
+  --surface-2: rgba(255, 255, 255, 0.04);
+  --surface-3: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --text: #f3f4f6;
+  --text-muted: #9ca3af;
+  --primary: #d29034;
+  --primary-strong: #e0a24a;
+  --primary-soft: rgba(210, 144, 52, 0.14);
+  --accent: #d29034;
+  --danger: #e5533d;
+  --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(210, 144, 52, 0.08);
+  color-scheme: dark;
+}
+
+html[data-game='gomoku'] body {
+  background-color: #0f1219;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(26, 32, 48, 0.8) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(210, 144, 52, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(10, 12, 18, 1) 0%, rgba(5, 7, 10, 1) 100%);
+}
+
+html[data-game='gomoku'] .topbar {
+  background: rgba(15, 18, 25, 0.72);
+  border-bottom: 1px solid rgba(210, 144, 52, 0.16);
+}
+
+html[data-game='gomoku'] .brand-text strong {
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #d29034 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  letter-spacing: 0.12em;
+}
+
+html[data-game='gomoku'] .mode-switch {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-game='gomoku'] .mode-switch button.is-active,
+html[data-game='gomoku'] .segmented button.is-active {
+  background: linear-gradient(135deg, #d29034, #b5761f);
+  color: #1a1206;
+  box-shadow: 0 0 12px rgba(210, 144, 52, 0.4);
+}
+
+html[data-game='gomoku'] .segmented {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-game='gomoku'] .game-header h1 {
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  letter-spacing: 0.16em;
+}
+
+html[data-game='gomoku'] .panel {
+  background: rgba(22, 28, 41, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+html[data-game='gomoku'] .panel-title {
+  color: #d29034;
+  opacity: 0.9;
+}
+
+html[data-game='gomoku'] .btn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
+html[data-game='gomoku'] .btn:hover {
+  border-color: #d29034;
+  color: #e0a24a;
+}
+
+html[data-game='gomoku'] .btn-primary {
+  background: linear-gradient(135deg, #e0a24a, #b5761f);
+  border-color: transparent;
+  color: #1a1206;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(210, 144, 52, 0.28);
+}
+
+html[data-game='gomoku'] .btn-primary:hover {
+  background: linear-gradient(135deg, #eeb35a, #c8862a);
+  color: #1a1206;
+}
+
+html[data-game='gomoku'] .status-row {
+  position: relative;
+  padding: 12px 14px 12px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+html[data-game='gomoku'] .status-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background: #d29034;
+  box-shadow: 0 0 10px #d29034;
+}
+
+html[data-game='gomoku'] .stat {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+html[data-game='gomoku'] .stat strong {
+  color: #e0a24a;
+}
+
+html[data-game='gomoku'] .board-frame {
+  background: transparent;
+  border: 3px solid #7d4d12;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(210, 144, 52, 0.08);
+}
+
+html[data-game='gomoku'] .board-canvas {
+  border-radius: 10px;
+  background: #e4a853;
+}
+
+html[data-game='gomoku'] .result-banner {
+  background: rgba(210, 144, 52, 0.12);
+  border: 1px solid rgba(210, 144, 52, 0.5);
+  color: #e0a24a;
+  box-shadow: 0 0 24px rgba(210, 144, 52, 0.2);
+}
+
+html[data-game='gomoku'] .switch input:checked {
+  background: #d29034;
+  border-color: #d29034;
+}
+
+html[data-game='gomoku'] .footer {
+  color: rgba(156, 163, 175, 0.7);
+}
+
+/* 布局：侧栏在左、棋盘在右 */
+html[data-game='gomoku'] .game-layout {
+  grid-template-columns: 348px minmax(0, 1fr);
+}
+html[data-game='gomoku'] .side-panel { order: 1; }
+html[data-game='gomoku'] .board-panel { order: 2; }
+
+html[data-game='gomoku'] .game-header h1 { color: #f3f4f6; }
+html[data-game='gomoku'] .game-header p { color: #9ca3af; }
+
+/* 深色皮肤下隐藏明暗切换（皮肤已固定深色） */
+html[data-game='gomoku'] #theme-toggle { display: none; }
