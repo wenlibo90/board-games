@@ -1,26 +1,12 @@
-// 棋种注册表：新增棋种只需在此引入并加入 GAMES
+// 棋种注册表
+// 首页与路由只依赖轻量元数据（games-meta.js）；具体棋种模块在打开时按需动态加载，
+// 避免首次进入就加载全部棋种的引擎/AI/视图。
 
-import go from '../games/go/index.js';
-import xiangqi from '../games/xiangqi/index.js';
-import janggi from '../games/janggi/index.js';
-import chess from '../games/chess/index.js';
-import shogi from '../games/shogi/index.js';
-import jungle from '../games/jungle/index.js';
-import draughts from '../games/draughts/index.js';
-import reversi from '../games/reversi/index.js';
-import gomoku from '../games/gomoku/index.js';
-import chinesecheckers from '../games/chinesecheckers/index.js';
-import uno from '../games/uno/index.js';
-import shengji from '../games/shengji/index.js';
-import guandan from '../games/guandan/index.js';
-import doudizhu from '../games/doudizhu/index.js';
+import { GAMES_META, LOADERS, loadGame, getGameMeta } from './games-meta.js';
 
-export const GAMES = [
-  xiangqi, janggi, shogi, gomoku, chess, go,
-  draughts, chinesecheckers, reversi, jungle,
-  uno, shengji, guandan, doudizhu,
-];
+export const GAMES = GAMES_META;
+export { LOADERS, loadGame, getGameMeta };
 
 export function getGame(id) {
-  return GAMES.find((g) => g.id === id) || null;
+  return getGameMeta(id);
 }

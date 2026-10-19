@@ -123,6 +123,10 @@
 
         <!-- 对局运行时：父页模式下以 iframe 加载完整运行页 -->
         <iframe id="game-frame" class="game-frame" title="引擎运行台"></iframe>
+        <div class="frame-loading is-hidden" id="game-loading" aria-hidden="true">
+          <span class="loading-spinner"></span>
+          <span class="frame-loading-text">引擎加载中</span>
+        </div>
 
         <!-- 以下结构仅 iframe 嵌入模式（?embed=<id>）内部使用，父页模式下由 CSS 隐藏 -->
         <div id="custom-page-host" class="is-hidden"></div>
@@ -138,9 +142,9 @@
             <div class="board-panel">
               <div class="board-frame" id="board-frame">
                 <canvas id="game-canvas" class="board-canvas" aria-label="棋盘"></canvas>
-              </div>
-              <div id="result-banner" class="result-banner is-hidden" role="status" aria-live="polite">
-                <span id="result-text"></span>
+                <div id="win-overlay" class="win-overlay is-hidden" role="status" aria-live="polite" aria-atomic="true">
+                  <div class="win-ribbon"><span id="win-text"></span></div>
+                </div>
               </div>
             </div>
             <aside class="side-panel" id="side-panel"></aside>
@@ -183,6 +187,11 @@
     <span>Neon Arena · 棋牌底层代码开源引擎 · 一套内核，主题随意定制，全平台客户端支持</span>
   </footer>
 
-  <script type="module" src="./src/app.js?v=20"></script>
+  <div class="boot-loading" id="boot-loading" aria-hidden="true">
+    <span class="loading-spinner"></span>
+    <span>引擎加载中</span>
+  </div>
+
+  <script type="module" src="./src/app.js?v=34"></script>
 </body>
 </html>

@@ -138,8 +138,8 @@ function negamax(pos, color, depth, alpha, beta, deadline) {
   return { score: best };
 }
 
-const DEPTH = { easy: 1, medium: 2, hard: 3 };
-const BUDGET = { easy: 250, medium: 900, hard: 2000 };
+const DEPTH = { easy: 1, medium: 3, hard: 6 };
+const BUDGET = { easy: 250, medium: 900, hard: 2500 };
 
 export function chooseMove(game, difficulty = 'medium') {
   const color = game.turn;

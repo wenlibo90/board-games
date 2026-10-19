@@ -42,6 +42,14 @@ python3 -m http.server 8000
 
 > 根路径 `/` 即首页。也可以用其他静态服务器（nginx、`npx serve` 等）指向仓库根目录。
 
+### 启停脚本
+
+仓库提供 `start.sh` / `stop.sh`（端口固定 `8000`）：
+
+- `bash start.sh`：已启动则直接返回 `0`；未启动时启动成功返回 `0`，失败返回 `2`
+- `bash stop.sh`：用 `ss` 提取监听端口的 PID 并结束进程
+- 服务由 `server.py` 提供：根路径返回 `index.html`、禁用目录列表、禁用缓存
+
 ## 目录结构
 
 ```

@@ -9,84 +9,32 @@
     let isThinking = false;
     let startTime = Date.now();
 
-    // Web Audio Synthesizer for Wood Stone placement
+    // 落子音效：优先使用平台合成器 window.__sfx（真实木质碰撞声），按下棋列做立体声定位、按黑白子区分音色
     let audioCtx = null;
-    function playStoneSound() {
+    function playStoneSound(col, player) {
       if (!document.getElementById('sound-checkbox').checked) return;
-      
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-
-        const now = audioCtx.currentTime;
-        
-        // 1. Sharp high-frequency click (stone shell strike)
-        const oscClick = audioCtx.createOscillator();
-        const gainClick = audioCtx.createGain();
-        oscClick.type = 'triangle';
-        oscClick.frequency.setValueAtTime(1200, now);
-        oscClick.frequency.exponentialRampToValueAtTime(100, now + 0.04);
-        
-        gainClick.gain.setValueAtTime(0.5, now);
-        gainClick.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-        
-        // 2. Medium frequency resonant thump (wooden Goban hollow chamber)
-        const oscThump = audioCtx.createOscillator();
-        const gainThump = audioCtx.createGain();
-        oscThump.type = 'sine';
-        oscThump.frequency.setValueAtTime(220, now);
-        oscThump.frequency.exponentialRampToValueAtTime(80, now + 0.15);
-        
-        gainThump.gain.setValueAtTime(0.6, now);
-        gainThump.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-        // 3. Noise burst for natural organic impact texture
-        const bufferSize = audioCtx.sampleRate * 0.03; // 30ms burst
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-        
-        const noiseNode = audioCtx.createBufferSource();
-        noiseNode.buffer = buffer;
-        
-        const noiseFilter = audioCtx.createBiquadFilter();
-        noiseFilter.type = 'bandpass';
-        noiseFilter.frequency.setValueAtTime(600, now);
-        noiseFilter.Q.setValueAtTime(2.0, now);
-        
-        const gainNoise = audioCtx.createGain();
-        gainNoise.gain.setValueAtTime(0.12, now);
-        gainNoise.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
-
-        // Route everything to audio output
-        oscClick.connect(gainClick);
-        gainClick.connect(audioCtx.destination);
-        
-        oscThump.connect(gainThump);
-        gainThump.connect(audioCtx.destination);
-
-        noiseNode.connect(noiseFilter);
-        noiseFilter.connect(gainNoise);
-        gainNoise.connect(audioCtx.destination);
-
-        // Play
-        oscClick.start(now);
-        oscClick.stop(now + 0.05);
-        
-        oscThump.start(now);
-        oscThump.stop(now + 0.2);
-
-        noiseNode.start(now);
-        noiseNode.stop(now + 0.03);
-      } catch (e) {
-        console.error("Audio synthesis failed:", e);
+      const pan = (typeof col === 'number' && BOARD_SIZE > 1) ? ((col / (BOARD_SIZE - 1)) - 0.5) * 0.5 : 0;
+      const bright = player === 2 ? 1.06 : 0.94;
+      const pitch = player === 2 ? 1.03 : 0.97;
+      if (window.__sfx && window.__sfx.place) {
+        window.__sfx.place({ pan: pan, bright: bright, pitch: pitch });
+        return;
       }
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const t = audioCtx.currentTime;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(2200, t);
+        o.frequency.exponentialRampToValueAtTime(900, t + 0.05);
+        g.gain.setValueAtTime(0.25, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+        o.connect(g).connect(audioCtx.destination);
+        o.start(t);
+        o.stop(t + 0.07);
+      } catch (e) { /* ignore */ }
     }
 
     // Initialize 15x15 board UI grid lines & trigger intersections
@@ -194,7 +142,7 @@
       cell.appendChild(stone);
 
       // Play synthesized stone collision sound
-      playStoneSound();
+      playStoneSound(c, player);
 
       // Log movement to UI list
       logMove(player, r, c);

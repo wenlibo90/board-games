@@ -74,11 +74,28 @@ function aiMoves(state, color) {
 
 const MATE = 1000000;
 
+function quiesce(state, color, alpha, beta, deadline, qdepth) {
+  const stand = evaluate(state, color);
+  if (qdepth <= 0 || Date.now() > deadline) return stand;
+  if (stand >= beta) return beta;
+  if (stand > alpha) alpha = stand;
+  const caps = legalMoves(state, color).filter((m) => !m.drop && state.board[m.to]);
+  caps.sort((a, b) => moveScore(state, b) - moveScore(state, a));
+  for (const m of caps) {
+    const info = applyMove(state, m);
+    const sc = -quiesce(state, opponent(color), -beta, -alpha, deadline, qdepth - 1);
+    unapplyMove(state, m, info);
+    if (sc >= beta) return beta;
+    if (sc > alpha) alpha = sc;
+  }
+  return alpha;
+}
+
 function negamax(state, color, depth, alpha, beta, deadline) {
   if (Date.now() > deadline) return evaluate(state, color);
   const moves = aiMoves(state, color);
   if (moves.length === 0) return -MATE + (4 - depth);
-  if (depth <= 0) return evaluate(state, color);
+  if (depth <= 0) return quiesce(state, color, alpha, beta, deadline, 2);
   moves.sort((a, b) => moveScore(state, b) - moveScore(state, a));
   let best = -Infinity;
   for (const m of moves) {
@@ -92,8 +109,8 @@ function negamax(state, color, depth, alpha, beta, deadline) {
   return best;
 }
 
-const DEPTH = { easy: 1, medium: 2, hard: 2 };
-const BUDGET = { easy: 120, medium: 500, hard: 1400 };
+const DEPTH = { easy: 1, medium: 3, hard: 6 };
+const BUDGET = { easy: 150, medium: 700, hard: 2200 };
 
 export function chooseMove(game, difficulty = 'medium') {
   const color = game.turn;

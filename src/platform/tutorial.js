@@ -23,6 +23,7 @@ export class TutorialController {
     this.lessons = module.lessons || [];
     this.onFinish = opts.onFinish || (() => {});
     this.onResize = opts.onResize || (() => {});
+    this.onExit = opts.onExit || (() => {});
     this.index = 0;
     this.solved = false;
     this.game = null;
@@ -37,7 +38,10 @@ export class TutorialController {
           <canvas class="board-canvas" aria-label="教学棋盘"></canvas>
         </div>
         <aside class="tutorial-side">
-          <div class="lesson-progress"></div>
+          <div class="tutorial-side-top">
+            <div class="lesson-progress"></div>
+            <a href="javascript:void(0)" class="tutorial-back" data-act="exit">返回对弈</a>
+          </div>
           <div class="lesson-head">
             <span class="lesson-tag"></span>
             <h3 class="lesson-title"></h3>
@@ -65,6 +69,8 @@ export class TutorialController {
 
     this.btnPrev.addEventListener('click', () => this.prev());
     this.btnNext.addEventListener('click', () => this.next());
+    const exitLink = q('[data-act="exit"]');
+    if (exitLink) exitLink.addEventListener('click', () => this.onExit());
 
     this.view = this.module.createView(this.canvas, {
       onMove: (move) => this._handleMove(move),

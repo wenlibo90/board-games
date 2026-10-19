@@ -1596,25 +1596,92 @@ html.embed #home-view {
   background: #e3b778;
 }
 
-.result-banner {
+.win-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  border-radius: var(--radius-sm);
-  background: var(--primary-soft);
-  border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--border));
-  color: var(--primary-strong);
-  font-weight: 600;
-  font-size: 15px;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 6;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
-[data-theme='dark'] .result-banner {
-  color: var(--primary);
-}
-
-.result-banner.is-hidden {
+.win-overlay.is-hidden {
   display: none;
+}
+
+.win-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--accent) 75%, transparent);
+  animation: winRing 1.2s ease-in-out infinite alternate;
+}
+
+.win-ribbon {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  top: 50%;
+  transform: translateY(-50%) rotate(-10deg);
+  padding: 16px 0;
+  text-align: center;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #fff) 0%, var(--accent) 60%, color-mix(in srgb, var(--accent) 82%, #000) 100%);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: clamp(18px, 3vw, 30px);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  white-space: nowrap;
+  animation: winPop 0.5s cubic-bezier(0.2, 1.35, 0.4, 1) both, winGlow 1.6s ease-in-out infinite alternate;
+}
+
+.win-ribbon::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: winShine 1.8s linear infinite;
+}
+
+.win-ribbon > span {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes winPop {
+  from { opacity: 0; transform: translateY(-50%) rotate(-10deg) scale(0.6); }
+  to { opacity: 1; transform: translateY(-50%) rotate(-10deg) scale(1); }
+}
+
+@keyframes winGlow {
+  from { box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.18); }
+  to { box-shadow: 0 18px 52px rgba(0, 0, 0, 0.5), 0 0 30px 6px color-mix(in srgb, var(--accent) 55%, transparent), inset 0 0 0 2px rgba(255, 255, 255, 0.28); }
+}
+
+@keyframes winShine {
+  from { left: -50%; }
+  to { left: 120%; }
+}
+
+@keyframes winRing {
+  from { opacity: 0.35; }
+  to { opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .win-ribbon,
+  .win-ribbon::after,
+  .win-overlay::before {
+    animation: none;
+  }
 }
 
 /* ---------- 升变浮层 ---------- */
@@ -2381,3 +2448,80 @@ html.embed .ai-buddy {
     height: min(430px, 62dvh);
   }
 }
+
+/* 新手教学入口（文字链接，位于状态文字之后） */
+.tutorial-link {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tutorial-link:hover { color: var(--primary-strong); }
+
+/* 教学侧栏卡片右上角「返回对弈」（与「新手教学」同款文字链接样式） */
+.tutorial-side-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tutorial-back {
+  flex: none;
+  font-size: 12.5px;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tutorial-back:hover { color: var(--primary-strong); }
+
+/* 载入指示（弹窗内 + 嵌入启动） */
+.game-modal-panel--frame { position: relative; }
+.loading-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  border-top-color: var(--primary);
+  animation: neon-spin 0.8s linear infinite;
+}
+@keyframes neon-spin { to { transform: rotate(360deg); } }
+
+.frame-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+.frame-loading.is-hidden { display: none; }
+
+.boot-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.boot-loading.is-hidden { display: none; }
+
+/* 返回对弈：与「新手教学」链接一致（加粗） */
+.tutorial-back { font-weight: 600; }

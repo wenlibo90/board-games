@@ -1,81 +1,149 @@
-// 韩国象棋 AI：Alpha-Beta 迭代加深
+// 韩国象棋 AI：位置评估 + 静态搜索(quiescence) + 杀手/历史启发 + 迭代加深
 
 import {
-  RED, BLUE, K, A, E, H, R, C, P,
+  RED, K, A, E, H, R, C, P,
   SIZE, xOf, yOf, colorOf, typeOf, opponent,
   legalMoves, makeMove, unmakeMove,
 } from './engine.js';
 
-const VAL = { [K]: 60000, [R]: 900, [H]: 420, [C]: 500, [A]: 220, [E]: 220, [P]: 110 };
-const MATE = 90000;
+const VAL = { [K]: 100000, [R]: 1000, [C]: 500, [H]: 450, [A]: 220, [E]: 220, [P]: 110 };
+const MATE = 1000000;
 
-function valueOf(board, i, p) {
+function posValue(p, x, y) {
   const t = typeOf(p);
-  let v = VAL[t] || 0;
-  const x = xOf(i), y = yOf(i);
-  if (t === P) { v += (colorOf(p) === RED ? 9 - y : y) * 6; v += (x >= 3 && x <= 5) ? 10 : 0; }
-  else if (t === H || t === C) v += 5 * (4 - Math.abs(x - 4));
+  const ry = colorOf(p) === RED ? 9 - y : y; // 0=己方底线, 9=对方底线
+  const cx = 4 - Math.abs(x - 4);
+  let v = VAL[t];
+  if (t === P) {
+    v += ry * 8 + cx * 5;
+    if (ry >= 5) v += 50; // 过河
+  } else if (t === H) {
+    v += cx * 8;
+    if (x === 0 || x === 8) v -= 30;
+  } else if (t === C) {
+    v += cx * 6;
+  } else if (t === R) {
+    v += cx * 2;
+  } else if (t === A || t === E) {
+    if (ry <= 1) v += 15;
+  }
   return v;
 }
+
 function evaluate(board, color) {
   let s = 0;
-  for (let i = 0; i < SIZE; i++) { const p = board[i]; if (!p) continue; s += (colorOf(p) === color ? 1 : -1) * valueOf(board, i, p); }
+  for (let i = 0; i < SIZE; i++) {
+    const p = board[i];
+    if (!p) continue;
+    const v = posValue(p, xOf(i), yOf(i));
+    s += colorOf(p) === color ? v : -v;
+  }
   return s;
 }
-function order(board, moves) {
-  for (const m of moves) { const cap = board[m.to]; m._s = cap ? (VAL[typeOf(cap)] || 0) : 0; }
+
+let killers = [];
+let historyTable = new Map();
+const key = (m) => m.from * 100 + m.to;
+
+function orderMoves(board, moves, ply) {
+  const k = killers[ply] || [];
+  for (const m of moves) {
+    const cap = board[m.to];
+    const mvFrom = VAL[typeOf(board[m.from])] || 0;
+    if (cap) m._s = 1000000 + (VAL[typeOf(cap)] || 0) * 10 - mvFrom;
+    else if (k[0] === key(m) || k[1] === key(m)) m._s = 900000;
+    else m._s = historyTable.get(key(m)) || 0;
+  }
   moves.sort((a, b) => b._s - a._s);
 }
-function search(board, color, depth, alpha, beta, deadline) {
-  if (Date.now() > deadline) return evaluate(board, color);
+
+function quiesce(board, color, alpha, beta, deadline, qdepth) {
+  const stand = evaluate(board, color);
+  if (qdepth <= 0 || Date.now() > deadline) return stand;
+  if (stand >= beta) return beta;
+  if (stand > alpha) alpha = stand;
+  const caps = legalMoves(board, color).filter((m) => board[m.to]);
+  orderMoves(board, caps, 0);
+  for (const m of caps) {
+    const { moved, captured } = makeMove(board, m.from, m.to);
+    const sc = -quiesce(board, opponent(color), -beta, -alpha, deadline, qdepth - 1);
+    unmakeMove(board, m.from, m.to, moved, captured);
+    if (sc >= beta) return beta;
+    if (sc > alpha) alpha = sc;
+  }
+  return alpha;
+}
+
+function negamax(board, color, depth, alpha, beta, ply, deadline) {
+  if (Date.now() > deadline) return { score: evaluate(board, color), aborted: true };
   const moves = legalMoves(board, color);
-  if (moves.length === 0) return -MATE + (4 - depth);
-  if (depth <= 0) return evaluate(board, color);
-  order(board, moves);
+  if (moves.length === 0) return { score: -MATE + ply };
+  if (depth <= 0) return { score: quiesce(board, color, alpha, beta, deadline, 3) };
+
+  orderMoves(board, moves, ply);
   let best = -Infinity;
   for (const m of moves) {
     const { moved, captured } = makeMove(board, m.from, m.to);
-    const sc = -search(board, opponent(color), depth - 1, -beta, -alpha, deadline);
+    const r = negamax(board, opponent(color), depth - 1, -beta, -alpha, ply + 1, deadline);
     unmakeMove(board, m.from, m.to, moved, captured);
-    if (sc > best) best = sc;
+    if (r.aborted) return { score: best === -Infinity ? evaluate(board, color) : best, aborted: true };
+    if (r.score > best) best = r.score;
     if (best > alpha) alpha = best;
-    if (alpha >= beta) break;
+    if (alpha >= beta) {
+      if (!captured) {
+        const k = killers[ply] || (killers[ply] = []);
+        if (k[0] !== key(m)) { k[1] = k[0]; k[0] = key(m); }
+        historyTable.set(key(m), (historyTable.get(key(m)) || 0) + depth * depth);
+      }
+      break;
+    }
   }
-  return best;
+  return { score: best };
 }
-const DEPTH = { easy: 1, medium: 2, hard: 3 };
-const BUDGET = { easy: 200, medium: 700, hard: 1800 };
+
+const DEPTH = { easy: 2, medium: 4, hard: 10 };
+const BUDGET = { easy: 250, medium: 700, hard: 2000 };
 
 export function chooseMove(game, difficulty = 'medium') {
   const color = game.turn;
   const roots = game.legalMoves(color);
   if (roots.length === 0) return null;
-  if (difficulty === 'easy') {
-    const caps = roots.filter((m) => game.board[m.to] && typeOf(game.board[m.to]) !== K);
-    if (caps.length && Math.random() < 0.5) return caps[(Math.random() * caps.length) | 0];
-    return roots[(Math.random() * roots.length) | 0];
-  }
+  if (difficulty === 'easy' && Math.random() < 0.5) return roots[(Math.random() * roots.length) | 0];
+
   const board = game.board.slice();
-  order(board, roots);
+  killers = [];
+  historyTable = new Map();
   const deadline = Date.now() + (BUDGET[difficulty] || 700);
-  const maxDepth = DEPTH[difficulty] || 2;
-  let best = roots[0];
+  const maxDepth = DEPTH[difficulty] || 4;
+  let bestMove = roots[0];
+
+  orderMoves(board, roots, 0);
   for (let depth = 1; depth <= maxDepth; depth++) {
-    let alpha = -Infinity, localBest = null, aborted = false;
+    let alpha = -Infinity;
+    let localBest = null;
+    let aborted = false;
     const scored = [];
     for (const m of roots) {
       const { moved, captured } = makeMove(board, m.from, m.to);
-      const sc = search(board, opponent(color), depth - 1, -Infinity, -alpha, deadline);
+      const r = negamax(board, opponent(color), depth - 1, -Infinity, -alpha, 1, deadline);
       unmakeMove(board, m.from, m.to, moved, captured);
-      if (Date.now() > deadline) { aborted = true; break; }
-      scored.push({ m, sc });
-      if (sc > alpha) { alpha = sc; localBest = m; }
+      if (r.aborted) { aborted = true; break; }
+      scored.push({ m, score: r.score });
+      if (r.score > alpha) { alpha = r.score; localBest = m; }
     }
-    if (localBest) best = localBest;
+    if (localBest) bestMove = localBest;
     if (aborted) break;
-    scored.sort((a, b) => b.sc - a.sc);
+    scored.sort((a, b) => b.score - a.score);
     for (let i = 0; i < scored.length; i++) roots[i] = scored[i].m;
+    if (Math.abs(alpha) >= MATE - 100) break;
   }
-  return best;
+  return bestMove;
 }
-export function suggestMove(game, color) { const s = game.turn; game.turn = color; const mv = chooseMove(game, 'hard'); game.turn = s; return mv; }
+
+export function suggestMove(game, color) {
+  const saved = game.turn;
+  game.turn = color;
+  const mv = chooseMove(game, 'hard');
+  game.turn = saved;
+  return mv;
+}

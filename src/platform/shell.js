@@ -1,9 +1,10 @@
 // 平台外壳：首页/路由、通用对局控制、教学挂载
 // 每种棋通过 games/<id>/index.js 提供的模块清单接入，外壳不含任何棋种专属逻辑
 
-import { GAMES, getGame } from './registry.js';
+import { GAMES, getGame, loadGame } from './registry.js';
 import { getTheme } from '../core/theme.js';
 import { TutorialController } from './tutorial.js';
+import { place as playPlace, chime as playChime } from '../core/sfx.js';
 
 const DIFFICULTIES = [
   { value: 'easy', label: '入门' },
@@ -17,7 +18,7 @@ export class Shell {
     this.game = null;
     this.view = null;
     this.tutorial = null;
-    this.difficulty = 'medium';
+    this.difficulty = 'hard';
     this.thinking = false;
     this.aiTimer = null;
     this.hint = null;
@@ -45,10 +46,12 @@ export class Shell {
     this.tutorialPanel = this.$('tutorial-panel');
     this.tutorialHost = this.$('tutorial-host');
     this.sidePanel = this.$('side-panel');
-    this.resultBanner = this.$('result-banner');
-    this.resultText = this.$('result-text');
+    this.winOverlay = this.$('win-overlay');
+    this.winText = this.$('win-text');
     this.boardFrame = this.$('board-frame');
     this.customHost = this.$('custom-page-host');
+    this.gameLoading = this.$('game-loading');
+    this.bootLoading = this.$('boot-loading');
   }
 
   _applyTheme(theme) {
@@ -98,6 +101,8 @@ export class Shell {
     });
     // 对局弹窗：关闭按钮 / 点击遮罩 / Esc
     this.$('game-modal-close').addEventListener('click', () => this._closeGame());
+    const frameEl = this.$('game-frame');
+    if (frameEl) frameEl.addEventListener('load', () => this._hideFrameLoading());
     this.gameView.addEventListener('click', (e) => {
       // iframe 嵌入模式下 gameView 是铺平容器，不作为遮罩关闭
       if (!document.documentElement.classList.contains('embed') && e.target === this.gameView) this._closeGame();
@@ -108,6 +113,9 @@ export class Shell {
     // iframe 内运行时请求关闭弹窗（如点击品牌按钮 / Esc）
     window.addEventListener('message', (e) => {
       if (e.data && e.data.type === 'close-runtime') this._closeGame();
+      if (e.data && e.data.type === 'restart-runtime' && document.documentElement.classList.contains('embed')) {
+        this.newGame();
+      }
       if (e.data && e.data.type === 'expand-source') {
         const p = document.querySelector('.panel-source');
         if (p) p.classList.toggle('is-full');
@@ -265,29 +273,32 @@ export class Shell {
     this.homeGrid.querySelectorAll('[data-game]').forEach((el) => {
       el.addEventListener('click', () => {
         // 当前页弹窗打开，不跳转、不改变路由
-        const mod = GAMES.find((g) => g.id === el.dataset.game);
+        const mod = getGame(el.dataset.game);
         if (mod) this._openGame(mod);
       });
     });
   }
 
-  _route() {
-    // iframe 嵌入模式：?embed=<id> 时铺满运行对应引擎（无首页）
+  async _route() {
+    // iframe 嵌入模式：?embed=<id> 时铺满运行对应引擎（无首页）——按需加载该棋种
     const embedId = new URLSearchParams(location.search).get('embed');
     if (embedId) {
-      const mod = GAMES.find((g) => g.id === embedId);
+      this._showBoot();
+      const mod = await loadGame(embedId);
       if (mod) {
         document.documentElement.classList.add('embed');
         this._openGame(mod);
       }
+      this._hideBoot();
       return;
     }
+    this._hideBoot();
     const id = (location.hash || '#/').replace(/^#\/?/, '').trim();
     if (!id || id === 'home') {
       this._showHome();
       return;
     }
-    const mod = GAMES.find((g) => g.id === id);
+    const mod = getGame(id);
     if (!mod) {
       this._showHome();
       return;
@@ -307,12 +318,8 @@ export class Shell {
     this.gameView.classList.add('is-hidden');
     this.gameTabs.classList.add('is-hidden');
     document.body.style.overflow = '';
-    // 释放运行时 iframe
-    const frame = this.$('game-frame');
-    if (frame && frame.dataset.game) {
-      delete frame.dataset.game;
-      frame.src = 'about:blank';
-    }
+    // 保留运行时 iframe（不置空），下次打开同一棋种可直接复用，避免整页重载
+    this._hideFrameLoading();
   }
 
   // 关闭对局弹窗：hash 指向具体游戏时清回 #/（会触发 _route → _showHome），否则直接回首页
@@ -346,7 +353,11 @@ export class Shell {
       const frame = this.$('game-frame');
       if (frame && frame.dataset.game !== mod.id) {
         frame.dataset.game = mod.id;
+        this._showFrameLoading();
         frame.src = `./index.html?embed=${mod.id}`;
+      } else if (frame && frame.contentWindow) {
+        // 同一棋种：复用已加载的 iframe，仅通知重开一局
+        frame.contentWindow.postMessage({ type: 'restart-runtime' }, '*');
       }
       return;
     }
@@ -356,6 +367,16 @@ export class Shell {
     this.homeView.classList.add('is-hidden');
     this.gameTabs.classList.add('is-hidden');
     document.documentElement.setAttribute('data-game', mod.id);
+    this.activeTab = 'play';
+    if (!this.game || this.game.id !== mod.id) {
+      this.game = mod;
+      this.config = {};
+      for (const f of mod.setup || []) this.config[f.key] = f.default;
+      this.helpers = {};
+      for (const h of mod.helpers || []) this.helpers[h.key] = h.default;
+      this.hint = null;
+      this.overlay = null;
+    }
     if (this.customPage && this.customPage.destroy) { this.customPage.destroy(); this.customPage = null; }
     if (mod.customPage) {
       document.documentElement.setAttribute('data-custom-page', '1');
@@ -430,6 +451,7 @@ export class Shell {
             if (this.view) this.view.setDecor([]);
             this.newGame();
           },
+          onExit: () => this._switchTab('play'),
         });
         this.tutorial.moduleId = this.game.id;
       }
@@ -437,6 +459,32 @@ export class Shell {
     } else if (!silent) {
       setTimeout(() => this.view && this.view.resize(), 40);
     }
+    this._syncTutorialLink();
+  }
+
+  _syncTutorialLink() {
+    if (!this.tutorialLink) return;
+    this.tutorialLink.textContent = this.activeTab === 'tutorial' ? '返回对弈' : '新手教学';
+  }
+
+  _showFrameLoading() { if (this.gameLoading) this.gameLoading.classList.remove('is-hidden'); }
+  _hideFrameLoading() { if (this.gameLoading) this.gameLoading.classList.add('is-hidden'); }
+  _showBoot() { if (this.bootLoading) this.bootLoading.classList.remove('is-hidden'); }
+  _hideBoot() { if (this.bootLoading) this.bootLoading.classList.add('is-hidden'); }
+
+  _toggleTutorial() {
+    if (!this.game) return;
+    const toTutorial = this.activeTab !== 'tutorial';
+    if (this.game.customPage) {
+      if (toTutorial) {
+        document.documentElement.removeAttribute('data-custom-page');
+        if (this.customHost) this.customHost.classList.add('is-hidden');
+      } else {
+        document.documentElement.setAttribute('data-custom-page', '1');
+        if (this.customHost) this.customHost.classList.remove('is-hidden');
+      }
+    }
+    this._switchTab(toTutorial ? 'tutorial' : 'play');
   }
 
   // ---------- 侧栏 ----------
@@ -481,7 +529,7 @@ export class Shell {
 
     this.sidePanel.innerHTML = `
       <section class="panel panel-compact">
-        <div class="status-row"><span class="status-dot" id="status-dot" aria-hidden="true"></span><span id="status-text">准备开始</span></div>
+        <div class="status-row"><span class="status-dot" id="status-dot" aria-hidden="true"></span><span id="status-text">准备开始</span><a href="javascript:void(0)" id="tutorial-link" class="tutorial-link">新手教学</a></div>
         <div class="stat-grid" id="stat-grid"></div>
         ${setupHtml}
         <div class="field"><span class="field-label">AI 难度</span><div class="segmented">${diffHtml}</div></div>
@@ -557,6 +605,9 @@ export class Shell {
     this.statusDot = this.$('status-dot');
     this.statusText = this.$('status-text');
     this.statGrid = this.$('stat-grid');
+    this.tutorialLink = this.$('tutorial-link');
+    if (this.tutorialLink) this.tutorialLink.addEventListener('click', () => this._toggleTutorial());
+    this._syncTutorialLink();
     this._initSourcePanel(mod);
   }
 
@@ -702,7 +753,7 @@ export class Shell {
     this.hint = null;
     this.overlay = null;
     this.gameObj = this.game.createGame(this.config);
-    this.resultBanner.classList.add('is-hidden');
+    if (this.winOverlay) this.winOverlay.classList.add('is-hidden');
     if (this.view) {
       if (this.view.setViewer) this.view.setViewer(this.humanColor);
       this.view.setDecor([]);
@@ -789,28 +840,9 @@ export class Shell {
     }, 300);
   }
 
-  // 落子音效：WebAudio 合成短促「嗒」声，无资源文件；首次落子（用户交互）后自动可用
+  // 落子音效（合成实现见 core/sfx.js）
   _playStoneSound() {
-    try {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      if (!this._audioCtx) this._audioCtx = new Ctx();
-      const ctx = this._audioCtx;
-      if (ctx.state === 'suspended') ctx.resume();
-      const t = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, t);
-      osc.frequency.exponentialRampToValueAtTime(220, t + 0.08);
-      gain.gain.setValueAtTime(0.16, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.11);
-    } catch {
-      /* 无声环境忽略 */
-    }
+    playPlace();
   }
 
   _clearAiTimer() {
@@ -827,7 +859,7 @@ export class Shell {
     if (humanMoves === 0) return;
     this._clearHint();
     if (this.view && this.view.setOverlay) this.view.setOverlay(null);
-    this.resultBanner.classList.add('is-hidden');
+    if (this.winOverlay) this.winOverlay.classList.add('is-hidden');
     do {
       g.undo();
     } while (g.moves.length > 0 && g.turn !== this.humanColor);
@@ -885,8 +917,9 @@ export class Shell {
       const o = this.game.endOverlay(g);
       if (o && this.view && this.view.setOverlay) this.view.setOverlay(o);
     }
-    this.resultText.textContent = g.result ? g.result.text : '对局结束';
-    this.resultBanner.classList.remove('is-hidden');
+    if (this.winText) this.winText.textContent = g.result ? g.result.text : '对局结束';
+    if (this.winOverlay) this.winOverlay.classList.remove('is-hidden');
+    playChime();
     this.render();
   }
 }
