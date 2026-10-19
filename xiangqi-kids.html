@@ -91,7 +91,7 @@
       z-index: 1;
     }
 
-    /* 左侧案例说明面板（页面 README，与右侧扫码卡片对称） */
+    /* 左侧案例说明面板（页面 README） */
     .case-note {
       position: fixed;
       left: 16px;
@@ -151,29 +151,7 @@
       .case-note { display: none; } /* 窄屏两侧无留白，隐藏说明面板 */
     }
 
-    /* 右侧扫码卡片（运行时按当前地址生成二维码，内嵌精简 QR 无外部依赖） */
-    .qr-card {
-      position: fixed;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 112px;
-      padding: 8px 8px 5px;
-      background: rgba(255, 252, 240, 0.94);
-      border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(10, 30, 15, 0.35);
-      text-align: center;
-      cursor: pointer;
-      z-index: 5;
-      transition: transform 0.15s;
-    }
-    .qr-card:hover { transform: translateY(-50%) scale(1.06); }
-    .qr-card canvas { width: 100%; display: block; image-rendering: pixelated; border-radius: 4px; }
-    .qr-card span { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; color: #4a3a28; }
-
-    @media (max-width: 960px) {
-      .qr-card { display: none; } /* 移动端无需扫码入口 */
-    }
+    /* 右侧扫码卡片已移除（移动端预览效果不佳） */
 
     /* 轻提示气泡（学棋/规则等未上线入口） */
     #toast {
@@ -193,9 +171,40 @@
       z-index: 9;
     }
     #toast.is-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* 素材加载遮罩：全部就绪后再淡出，避免“默认棋盘→素材棋盘”的闪切 */
+    .kids-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: url('./assets/kids-xiangqi/background.webp') center / cover no-repeat, #2c5a34;
+      color: #fff;
+      font-size: 15px;
+      letter-spacing: 0.05em;
+      transition: opacity 0.35s ease;
+    }
+    .kids-loading.is-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+    .kids-spinner {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.28);
+      border-top-color: #fff;
+      animation: kids-spin 0.8s linear infinite;
+    }
+    @keyframes kids-spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
+  <div class="kids-loading" id="kids-loading" aria-hidden="true">
+    <span class="kids-spinner"></span>
+    <span>正在加载棋局…</span>
+  </div>
   <nav>
     <a class="wood-btn" href="./index.html" aria-label="返回首页"><img src="./assets/kids-xiangqi/btn-s.png" alt="首页" /></a>
     <button type="button" class="wood-btn" data-toast="学棋模式即将上线，敬请期待"><img src="./assets/kids-xiangqi/btn-x.png" alt="学棋" /></button>
@@ -236,13 +245,7 @@
     <a href="https://github.com/wenlibo90/board-games/tree/main/src/games/xiangqi" target="_blank" rel="noopener noreferrer">GitHub · 查看内核源码 →</a>
   </aside>
 
-  <!-- 右侧扫码卡片：手机扫码直接打开当前页（qrcodejs 由 BootCDN 提供，国内可达） -->
-  <aside class="qr-card" id="qr-card" title="手机扫码打开">
-    <div id="qr-canvas" aria-label="页面地址二维码"></div>
-    <span>扫码 · 手机对弈</span>
-  </aside>
 
-  <script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script type="module">
     // 表现层：棋盘直接引用项目原始象棋视图，棋子通过可选 pieces 参数换成萌趣 PNG
     // 棋规 / AI / 音效来自项目共享模块，页面本身只有对弈控制与儿童界面逻辑
@@ -277,12 +280,7 @@
     let thinking = false;
     let aiTimer = null;
 
-    const view = createView(document.getElementById('board'), {
-      palette: palettes.light,
-      pieces: KIDS_PIECES,
-      boardImage: BOARD_IMG,
-      onMove: humanMove,
-    });
+    let view = null;
 
     function statusText() {
       if (game.ended) return game.result ? game.result.text : '对局结束';
@@ -294,6 +292,7 @@
     }
 
     function refresh() {
+      if (!view) return;
       view.render(game);
       view.interactive = !game.ended && !thinking;
       statusEl.textContent = statusText();
@@ -346,7 +345,7 @@
 
     // 提示：让 AI 替红方算一步最优着法，绿环高亮起点与落点
     function hint() {
-      if (thinking || game.ended) return;
+      if (thinking || game.ended || !view) return;
       const mv = chooseMove(game, 'hard');
       if (mv) view.setHint(mv);
     }
@@ -366,26 +365,32 @@
     restartBtn.addEventListener('click', restart);
     hintBtn.addEventListener('click', hint);
 
-    // ---------- 右侧扫码卡片：qrcodejs（BootCDN）按当前地址生成，加载失败自动隐藏卡片 ----------
-    (function initQR() {
-      const card = document.getElementById('qr-card');
-      if (typeof QRCode === 'undefined') { card.style.display = 'none'; return; }
-      new QRCode(document.getElementById('qr-canvas'), {
-        text: location.href,
-        width: 98,
-        height: 98,
-        colorDark: '#1c4d2c',
-        colorLight: '#fffcf0',
-        correctLevel: QRCode.CorrectLevel.M,
+    // 预加载全部素材（底图 + 棋子），全部就绪后再创建视图并首帧渲染，避免“默认棋盘 → 素材棋盘”的闪切
+    function preloadImage(im) {
+      return new Promise((resolve) => {
+        if (im.complete && im.naturalWidth > 0) return resolve();
+        im.addEventListener('load', resolve, { once: true });
+        im.addEventListener('error', resolve, { once: true });
       });
-      // 本机地址（localhost / 127.0.0.1）手机无法访问，点击给提示
-      if (['localhost', '127.0.0.1', ''].includes(location.hostname)) {
-        card.addEventListener('click', () => showToast('当前是本机地址，手机扫码打不开——用局域网 IP 访问本页后再扫'));
-      }
-    })();
+    }
 
-    refresh();
+    const loadingEl = document.getElementById('kids-loading');
+
+    await Promise.all([BOARD_IMG, ...Object.values(KIDS_PIECES)].map(preloadImage));
+
+    view = createView(document.getElementById('board'), {
+      palette: palettes.light,
+      pieces: KIDS_PIECES,
+      boardImage: BOARD_IMG,
+      onMove: humanMove,
+    });
     view.resize();
+    refresh();
+
+    if (loadingEl) {
+      loadingEl.classList.add('is-hidden');
+      setTimeout(() => loadingEl.remove(), 400);
+    }
   </script>
 </body>
 </html>
