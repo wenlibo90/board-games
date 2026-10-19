@@ -1,21 +1,18 @@
-// 五子棋 AI：延续原整页那套策略
-// 1) 立即成五 → 2) 紧急堵四 → 3) 进攻/防守加权评分（按难度调整权重），并按中心位置微调
-// 评估方式为“五格窗口”模式统计（含虚拟落子），与原策略一致。
+// 五子棋 AI：进攻导向策略
+// 1) 立即成五 → 2) 紧急堵四 → 3) 进攻/防守加权评分（进攻权重高于防守）
+// 评分按“五格窗口”统计并区分活/眠型（活型价值远高于眠型），hard 额外做一步前瞻。
 
 import { EMPTY, opponent, findFive } from './engine.js';
 
 const DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]];
 
-// 五格窗口的权重矩阵（虚拟落子后窗口内己方子数 → 分值）
-function patternScore(virtualStones) {
-  switch (virtualStones) {
-    case 5: return 80000;
-    case 4: return 4500;
-    case 3: return 800;
-    case 2: return 80;
-    case 1: return 5;
-    default: return 0;
-  }
+// 五格窗口评分表：区分活性（窗口两端是否为空），活型价值远高于眠型
+function patternScore(virtualStones, openEnds) {
+  if (virtualStones >= 5) return 10000000;
+  if (virtualStones === 4) return openEnds === 2 ? 1000000 : openEnds === 1 ? 100000 : 0;
+  if (virtualStones === 3) return openEnds === 2 ? 12000 : openEnds === 1 ? 1000 : 0;
+  if (virtualStones === 2) return openEnds === 2 ? 120 : openEnds === 1 ? 12 : 0;
+  return 1;
 }
 
 // 评估在 idx 落 playerRole 子的价值：扫描所有经过该点的 5 格窗口
@@ -37,16 +34,24 @@ function scorePosition(board, size, idx, playerRole) {
         if (v === opp) { blocked = true; break; }
         if (v === playerRole) self++;
       }
-      if (!blocked) score += patternScore(self + 1); // 加上虚拟落子
+      if (blocked) continue;
+      // 活性：窗口两侧端点为空视为活型，进攻价值更高
+      let openEnds = 0;
+      for (const s of [offset - 1, offset + 5]) {
+        const x = x0 + s * dx;
+        const y = y0 + s * dy;
+        if (x >= 0 && x < size && y >= 0 && y < size && board[y * size + x] === EMPTY) openEnds++;
+      }
+      score += patternScore(self + 1, openEnds);
     }
   }
   return score;
 }
 
 const WEIGHTS = {
-  easy: { offense: 0.6, defense: 0.55, noise: 15 },
-  medium: { offense: 1.0, defense: 0.95, noise: 0 },
-  hard: { offense: 1.0, defense: 1.25, noise: 0 },
+  easy: { offense: 1.0, defense: 0.7, noise: 15 },
+  medium: { offense: 1.15, defense: 0.9, noise: 0 },
+  hard: { offense: 1.2, defense: 1.0, noise: 0 },
 };
 
 export function chooseMove(game, difficulty = 'medium') {
@@ -93,9 +98,8 @@ export function chooseMove(game, difficulty = 'medium') {
   if (immediateWin >= 0) return immediateWin;
   if (emergencyDefend >= 0) return emergencyDefend;
 
-  // 评分选点
-  let bestScore = -Infinity;
-  let candidates = [];
+  // 评分选点：先按静态分排序，hard 对头部候选做一步前瞻（考虑对手最佳应手）
+  const scored = [];
   for (let i = 0; i < board.length; i++) {
     if (board[i] !== EMPTY) continue;
     const x = i % size;
@@ -106,11 +110,34 @@ export function chooseMove(game, difficulty = 'medium') {
     const playerScore = scorePosition(board, size, i, opp);
     let total = aiScore * w.offense + playerScore * w.defense + positional;
     if (w.noise) total += Math.random() * w.noise;
-    if (total > bestScore) { bestScore = total; candidates = [i]; }
-    else if (total === bestScore) candidates.push(i);
+    scored.push({ idx: i, total });
   }
-  if (!candidates.length) return null;
-  return candidates[(Math.random() * candidates.length) | 0];
+  if (!scored.length) return null;
+  scored.sort((a, b) => b.total - a.total);
+
+  // hard：一步前瞻，避免只顾单步得分而放任对手连型
+  if (difficulty === 'hard') {
+    const top = scored.slice(0, 12);
+    let best = top[0];
+    let bestVal = -Infinity;
+    for (const cand of top) {
+      board[cand.idx] = color;
+      let oppBest = 0;
+      for (const s of scored) {
+        if (board[s.idx] !== EMPTY) continue;
+        const os = scorePosition(board, size, s.idx, opp) + scorePosition(board, size, s.idx, color) * 0.3;
+        if (os > oppBest) oppBest = os;
+      }
+      board[cand.idx] = EMPTY;
+      const val = cand.total - oppBest * 0.9;
+      if (val > bestVal) { bestVal = val; best = cand; }
+    }
+    return best.idx;
+  }
+
+  // easy/medium：头部候选内随机，保证多样性
+  const pool = difficulty === 'easy' ? scored.slice(0, 8) : scored.slice(0, 2);
+  return pool[(Math.random() * pool.length) | 0].idx;
 }
 
 export function suggestMove(game, color) {

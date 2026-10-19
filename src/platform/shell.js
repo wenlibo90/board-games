@@ -18,7 +18,7 @@ export class Shell {
     this.game = null;
     this.view = null;
     this.tutorial = null;
-    this.difficulty = 'hard';
+    this.difficulty = 'medium';
     this.thinking = false;
     this.aiTimer = null;
     this.hint = null;
