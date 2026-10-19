@@ -2,7 +2,7 @@
 // 每种棋通过 games/<id>/index.js 提供的模块清单接入，外壳不含任何棋种专属逻辑
 
 import { GAMES, getGame } from './registry.js';
-import { getTheme, toggleTheme } from '../core/theme.js';
+import { getTheme } from '../core/theme.js';
 import { TutorialController } from './tutorial.js';
 
 const DIFFICULTIES = [
@@ -60,28 +60,39 @@ export class Shell {
   }
 
   _bindGlobal() {
-    this.$('theme-toggle').addEventListener('click', () => {
-      this._applyTheme(toggleTheme(this.theme));
-    });
     this.$('btn-home').addEventListener('click', () => {
       location.hash = '#/';
     });
     this.gameTabs.querySelectorAll('[data-tab]').forEach((btn) => {
       btn.addEventListener('click', () => this._switchTab(btn.dataset.tab));
     });
+    // 锚点滚动（如「AI对战 / 进入对局」滚动到棋库网格）
+    document.querySelectorAll('[data-scroll]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        const target = document.querySelector(el.dataset.scroll);
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    // 占位链接：页面未上线前拦截跳转
+    document.querySelectorAll('[data-placeholder]').forEach((el) => {
+      el.addEventListener('click', (e) => e.preventDefault());
+    });
   }
 
   // ---------- 首页 ----------
   _renderHome() {
     this.homeGrid.innerHTML = GAMES.map(
-      (g) => `
-      <button class="game-card" type="button" data-game="${g.id}" style="--accent:${g.accent}">
+      (g, i) => `
+      <button class="game-card" type="button" data-game="${g.id}" style="--accent:${g.accent};--i:${i}">
+        <span class="game-card-ghost" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
         <span class="game-card-art" aria-hidden="true">${g.art || ''}</span>
         <span class="game-card-body">
           <span class="game-card-name">${g.name}<em>${g.nameEn}</em></span>
           <span class="game-card-tagline">${g.tagline}</span>
           <span class="game-card-desc">${g.description}</span>
-          <span class="game-card-go">进入棋盘</span>
+          <span class="game-card-go">开局对战<span class="arr" aria-hidden="true">→</span></span>
         </span>
       </button>`
     ).join('');
@@ -108,6 +119,7 @@ export class Shell {
 
   _showHome() {
     this._clearAiTimer();
+    document.body.classList.add('home-active');
     document.documentElement.removeAttribute('data-game');
     document.documentElement.removeAttribute('data-custom-page');
     if (this.customPage && this.customPage.destroy) { this.customPage.destroy(); this.customPage = null; }
@@ -119,6 +131,7 @@ export class Shell {
 
   _openGame(mod) {
     this._clearAiTimer();
+    document.body.classList.remove('home-active');
     document.documentElement.setAttribute('data-game', mod.id);
     if (this.customPage && this.customPage.destroy) { this.customPage.destroy(); this.customPage = null; }
     if (mod.customPage) {

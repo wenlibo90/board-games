@@ -7,25 +7,38 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="description" content="中国象棋、韩国象棋、日本将棋、国际象棋、围棋、国际跳棋、六角跳棋、五子棋、黑白棋、斗兽棋，以及 UNO、升级/拖拉机、掼蛋、斗地主，在线对弈，内置本地 AI 与新手教学。" />
-  <title>弈趣棋坊 · 多棋类在线对弈与新手教学</title>
+  <title>Neon Arena · 多棋种代码开源平台</title>
   <link rel="stylesheet" href="./assets/styles.css" />
   <link rel="stylesheet" href="./assets/skins.css" />
 </head>
 <body>
   <header class="topbar">
     <button type="button" class="brand" id="btn-home" aria-label="返回首页">
+      <!-- 占位 logo：霓虹菱形，待设计稿替换 -->
       <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 32 32" width="28" height="28">
-          <rect x="3" y="3" width="26" height="26" rx="7" fill="#0f766e" opacity="0.12" />
-          <circle cx="12" cy="16" r="7" fill="#161616" />
-          <circle cx="20" cy="16" r="7" fill="#f7f3e9" stroke="#cbbfa5" />
+        <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
+          <defs>
+            <linearGradient id="logo-grad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#00f0ff" />
+              <stop offset="1" stop-color="#ff2e88" />
+            </linearGradient>
+          </defs>
+          <path d="M24 3 45 24 24 45 3 24Z" stroke="url(#logo-grad)" stroke-width="2.4" stroke-linejoin="round" />
+          <path d="M24 13 35 24 24 35 13 24Z" fill="url(#logo-grad)" opacity="0.92" />
         </svg>
       </span>
       <span class="brand-text">
         <strong>弈趣棋坊</strong>
-        <span>棋类与牌类 · 本地 AI · 新手教学</span>
+        <span>NEON BOARD ARENA</span>
       </span>
     </button>
+
+    <nav class="topnav" aria-label="主导航">
+      <a class="topnav-link is-active" href="#/">首页</a>
+      <a class="topnav-link" href="#/" data-scroll="#home-grid">棋库</a>
+      <a class="topnav-link" href="#/" data-scroll="#home-grid">AI对战</a>
+      <a class="topnav-link" href="https://github.com/wenlibo90/board-games" target="_blank" rel="noopener noreferrer">开源</a>
+    </nav>
 
     <nav id="game-tabs" class="mode-switch is-hidden" aria-label="模式切换">
       <button type="button" data-tab="play" class="is-active">对弈</button>
@@ -33,12 +46,11 @@
     </nav>
 
     <div class="topbar-actions">
-      <button type="button" id="theme-toggle" class="icon-btn" aria-label="切换明暗主题">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4.2" />
-          <path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+      <a class="icon-btn" href="https://github.com/wenlibo90/board-games" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库" title="GitHub 开源仓库">
+        <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
         </svg>
-      </button>
+      </a>
     </div>
   </header>
 
@@ -46,9 +58,39 @@
     <!-- 首页 -->
     <section id="home-view">
       <div class="home-hero">
-        <h1>多棋种在线对弈</h1>
-        <p>中国象棋、韩国象棋、日本将棋、国际象棋、围棋、国际跳棋、六角跳棋、五子棋、黑白棋、斗兽棋，以及 UNO、升级/拖拉机、掼蛋、斗地主，全部内置本地 AI 与新手教学。</p>
+        <div class="hero-bg" aria-hidden="true"></div>
+        <div class="hero-shade" aria-hidden="true"></div>
+        <!-- 占位轮播箭头：装饰用 -->
+        <span class="hero-arrow left" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 8 12l6.5 7" /></svg>
+        </span>
+        <span class="hero-arrow right" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5 16 12l-6.5 7" /></svg>
+        </span>
+
+        <div class="hero-inner">
+          <h1 class="hero-title"><span class="hero-title-text">霓虹棋盘，即刻落子</span></h1>
+          <p class="hero-sub">传统棋类与卡牌对战平台，AI 陪练陪你入门</p>
+          <div class="hero-cta">
+            <button type="button" class="hero-btn" data-scroll="#home-grid">进入对局</button>
+            <!-- 占位链接：规则页待开发 -->
+            <a class="hero-rule" href="#" data-placeholder>查看规则</a>
+          </div>
+        </div>
       </div>
+
+      <div class="home-ticker" aria-hidden="true">
+        <div class="home-ticker-track">
+          <span><i>◆</i>中国象棋 XIANGQI</span><span><i>◆</i>韩国象棋 JANGGI</span><span><i>◆</i>日本将棋 SHOGI</span><span><i>◆</i>国际象棋 CHESS</span><span><i>◆</i>围棋 GO</span><span><i>◆</i>国际跳棋 DRAUGHTS</span><span><i>◆</i>六角跳棋 HEX CHECKERS</span><span><i>◆</i>五子棋 GOMOKU</span><span><i>◆</i>黑白棋 REVERSI</span><span><i>◆</i>斗兽棋 JUNGLE</span><span><i>◆</i>UNO</span><span><i>◆</i>升级 SHENGJI</span><span><i>◆</i>掼蛋 GUANDAN</span><span><i>◆</i>斗地主 DOUDIZHU</span><span><i>◆</i>中国象棋 XIANGQI</span><span><i>◆</i>韩国象棋 JANGGI</span><span><i>◆</i>日本将棋 SHOGI</span><span><i>◆</i>国际象棋 CHESS</span><span><i>◆</i>围棋 GO</span><span><i>◆</i>国际跳棋 DRAUGHTS</span><span><i>◆</i>六角跳棋 HEX CHECKERS</span><span><i>◆</i>五子棋 GOMOKU</span><span><i>◆</i>黑白棋 REVERSI</span><span><i>◆</i>斗兽棋 JUNGLE</span><span><i>◆</i>UNO</span><span><i>◆</i>升级 SHENGJI</span><span><i>◆</i>掼蛋 GUANDAN</span><span><i>◆</i>斗地主 DOUDIZHU</span>
+        </div>
+      </div>
+
+      <div class="home-section-head">
+        <span class="home-section-tag">// SELECT YOUR GAME</span>
+        <h2>选择你的战场</h2>
+        <span class="home-section-line" aria-hidden="true"></span>
+      </div>
+
       <div id="home-grid" class="home-grid"></div>
     </section>
 

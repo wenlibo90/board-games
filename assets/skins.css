@@ -179,6 +179,3 @@ html[data-game='gomoku'] .board-panel { order: 2; }
 
 html[data-game='gomoku'] .game-header h1 { color: #f3f4f6; }
 html[data-game='gomoku'] .game-header p { color: #9ca3af; }
-
-/* 深色皮肤下隐藏明暗切换（皮肤已固定深色） */
-html[data-game='gomoku'] #theme-toggle { display: none; }
