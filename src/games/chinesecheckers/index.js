@@ -30,7 +30,7 @@ function inTarget(game, color) {
 export default {
   id: 'chinesecheckers',
   name: '六角跳棋',
-  nameEn: 'Chinese Checkers',
+  nameEn: 'Hex Checkers',
   tagline: '连跳腾挪，抢占对岸',
   description: '六角星棋盘双人跳棋，含相邻步与连续跳跃，把全部棋子送抵对岸三角区。',
   accent: '#e2483d',

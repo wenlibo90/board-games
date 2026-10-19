@@ -1,5 +1,4 @@
 // 五子棋新手教学
-
 import { GomokuGame, BLACK, WHITE } from './engine.js';
 
 const S = 15;

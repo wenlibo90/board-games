@@ -79,7 +79,8 @@ export function createView(canvas, opts = {}) {
   }
 
   function layout(w, h) {
-    const m = Math.min(w, h) * 0.045;
+    // 边距需容纳坐标文字（盘外 0.42cell + 字号），0.075 保证不贴边裁切
+    const m = Math.min(w, h) * 0.075;
     cell = (Math.min(w, h) - 2 * m) / 8;
     ox = (w - cell * 8) / 2;
     oy = (h - cell * 8) / 2;

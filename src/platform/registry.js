@@ -16,8 +16,8 @@ import guandan from '../games/guandan/index.js';
 import doudizhu from '../games/doudizhu/index.js';
 
 export const GAMES = [
-  xiangqi, janggi, shogi, chess, go,
-  draughts, chinesecheckers, gomoku, reversi, jungle,
+  xiangqi, janggi, shogi, gomoku, chess, go,
+  draughts, chinesecheckers, reversi, jungle,
   uno, shengji, guandan, doudizhu,
 ];
 

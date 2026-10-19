@@ -8,18 +8,21 @@ import { WHITE, BLACK, K, Q, R, B, N, P, colorName, inCheck } from './engine.js'
 
 const art = `
   <svg viewBox="0 0 96 96" width="72" height="72">
+    <defs>
+      <clipPath id="chess-board-clip"><rect x="15" y="15" width="66" height="66" rx="8"/></clipPath>
+    </defs>
     <rect x="6" y="6" width="84" height="84" rx="12" fill="#eddfc5" stroke="#b58863" stroke-width="2"/>
-    <g>
-      <rect x="6" y="6" width="21" height="21" fill="#b58863"/>
-      <rect x="27" y="6" width="21" height="21" fill="#eddfc5"/>
-      <rect x="48" y="6" width="21" height="21" fill="#b58863"/>
-      <rect x="69" y="6" width="21" height="21" fill="#eddfc5"/>
-      <rect x="6" y="27" width="21" height="21" fill="#eddfc5"/>
-      <rect x="27" y="27" width="21" height="21" fill="#b58863"/>
-      <rect x="48" y="27" width="21" height="21" fill="#eddfc5"/>
-      <rect x="69" y="27" width="21" height="21" fill="#b58863"/>
+    <g clip-path="url(#chess-board-clip)">
+      <rect x="15" y="15" width="66" height="66" fill="#eddfc5"/>
+      <g fill="#b58863">
+        <rect x="15" y="15" width="16.5" height="16.5"/><rect x="48" y="15" width="16.5" height="16.5"/>
+        <rect x="31.5" y="31.5" width="16.5" height="16.5"/><rect x="64.5" y="31.5" width="16.5" height="16.5"/>
+        <rect x="15" y="48" width="16.5" height="16.5"/><rect x="48" y="48" width="16.5" height="16.5"/>
+        <rect x="31.5" y="64.5" width="16.5" height="16.5"/><rect x="64.5" y="64.5" width="16.5" height="16.5"/>
+      </g>
     </g>
-    <text x="48" y="62" font-size="46" text-anchor="middle" fill="#1b1b1b" font-family="serif">♞</text>
+    <rect x="15" y="15" width="66" height="66" rx="8" fill="none" stroke="#b58863" stroke-width="1.5"/>
+    <text x="48" y="63" font-size="40" text-anchor="middle" fill="#1b1b1b" font-family="serif">♞</text>
   </svg>`;
 
 export default {

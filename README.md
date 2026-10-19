@@ -1,11 +1,15 @@
-# 弈趣棋坊 · 多棋种在线对弈平台
+# 弈趣棋坊 · Neon Arena — 开源棋牌引擎平台
 
-一个**纯前端、零构建**的棋类与牌类对战平台：内置本地 AI 与新手教学，打开即玩，无需后端、无需联网。
+**一套内核，千种棋界。**
 
-- 桌面/移动端自适应，棋盘由 Canvas 绘制
-- 人机对战，支持难度分档、悔棋、提示、认输
-- 每个棋种内置「新手教学」互动课程
-- 支持明/暗主题，并可按棋种定制页面皮肤，甚至整页自定义
+本项目把 14 款经典棋牌的**底层代码（规则引擎 + 本地 AI + 教学）完全开源**：核心逻辑稳定不变，显示层（皮肤、主题、棋盘、棋子、动效、甚至整页 UI）全部外置可替换。你可以基于同一套内核，改造出 3D 象棋、儿童五子棋、国风围棋……属于你自己的棋牌产品。
+
+- **纯前端、零构建**：原生 ES Modules + Canvas，无第三方依赖、无后端，打开即玩
+- **规则与显示解耦**：引擎只负责规则与 AI，`createGame` / `ai.move` 等契约稳定，换皮不动内核
+- **皮肤系统**：按棋种定制整页风格（`html[data-game="<id>"]` 一段 CSS 即可），支持整页自定义 UI
+- **本地 AI**：极小极大 / Alpha-Beta / 启发式，离线可玩，支持难度分档
+- **新手教学**：每个棋种内置互动课程
+- 桌面/移动端自适应，对局在当前页以弹窗打开，首页为霓虹电竞风格
 
 ## 棋种一览（14 款）
 
@@ -28,7 +32,7 @@
 
 ## 快速开始
 
-项目为纯静态站点（原生 ES Modules），**无需安装依赖、无需构建**。用任意静态服务器托管即可：
+项目为纯静态站点，**无需安装依赖、无需构建**。用任意静态服务器托管即可：
 
 ```bash
 python3 -m http.server 8000
@@ -42,10 +46,12 @@ python3 -m http.server 8000
 
 ```
 .
-├── index.html                # 唯一入口（首页 + 对局视图 + 教学视图）
+├── index.html                # 唯一入口（霓虹首页 + 对局弹窗 + 教学视图）
 ├── assets/
-│   ├── styles.css            # 基础样式与设计变量（明/暗主题）
+│   ├── styles.css            # 基础样式、霓虹首页与对局外壳（明/暗主题变量）
 │   ├── skins.css             # 按棋种定制皮肤的规则（html[data-game="<id>"]）
+│   ├── logo.png              # 站点 logo（占位，可替换）
+│   ├── home-hero.webp        # 首页背景图（可替换）
 │   ├── gomoku-page.css       # 五子棋整页样式
 │   └── gomoku-page.js        # 五子棋整页脚本（自带 AI/音效/礼花/结算弹窗）
 └── src/
@@ -56,7 +62,7 @@ python3 -m http.server 8000
     │   ├── cards.js          # 扑克牌堆/洗牌
     │   └── cardgfx.js        # 牌面绘制与手牌布局/选择(HandUI)
     ├── platform/             # 平台外壳
-    │   ├── shell.js          # 首页、路由(#/go 等)、通用对局外壳、侧栏生成
+    │   ├── shell.js          # 首页、路由(#/go)、对局弹窗外壳、侧栏生成
     │   ├── registry.js       # 棋种注册表
     │   └── tutorial.js       # 通用教学控制器
     └── games/                # 各棋种自包含模块
@@ -67,7 +73,7 @@ python3 -m http.server 8000
 
 ## 架构与棋种契约
 
-平台与棋种解耦：外壳只依赖统一契约，每个棋种是 `src/games/<id>/` 下自包含的一组文件。
+平台与棋种解耦：外壳只依赖统一契约，每个棋种是 `src/games/<id>/` 下自包含的一组文件。**这正是「核心逻辑不变、显示层随便改」的基础。**
 
 **模块清单（`games/<id>/index.js` 默认导出）常用字段**
 
@@ -83,7 +89,20 @@ python3 -m http.server 8000
 
 **视图对象约定**：`render(game)`、`resize()`、`setPalette(p)`、`interactive`；可选 `setDecor`、`setHint`、`setOverlay`、`setViewer`（暗棋隐藏信息）、`getSelection`/`clearSelection`（牌类）。
 
-## 如何新增一个棋种
+## 二次开发指南
+
+### 场景 A：只想换皮（最快）
+
+不改任何 JS。在 `assets/skins.css` 里加一段 `html[data-game="<id>"] { ... }`，覆盖设计变量与组件样式，即可整页换风格；棋盘本身的配色在棋种 `view.js` 的 `palettes` 中调整。适合做主题包、节日限定皮肤。
+
+### 场景 B：做儿童版 / 3D 版等衍生产品
+
+两种路径：
+
+1. **换视图层（推荐）**：保留 `engine.js` / `ai.js` 不动，重写 `view.js`——用 Three.js / WebGL 渲染 3D 棋盘，或做放大棋子、音效、卡通贴纸的儿童界面。契约不变（`createView(canvas, { onMove, palette })`），外壳无感知。
+2. **整页自定义**：模块声明 `customPage: true` 并提供 `mountPage(container, { onExit })`，外壳会隐藏通用棋盘/侧栏，整页交给你的 UI（参考 `src/games/gomoku/`，自带 AI、音效、礼花、结算弹窗）。
+
+### 场景 C：新增一个棋种
 
 1. 新建 `src/games/<id>/`，实现以下文件：
    - `engine.js`：规则引擎（状态、走法、胜负）
@@ -93,14 +112,9 @@ python3 -m http.server 8000
    - `index.js`：模块清单（默认导出上述字段）
 2. 在 `src/platform/registry.js` 中 `import` 并加入 `GAMES` 数组（决定首页顺序）。
 
-外壳会自动提供：首页卡片、路由、对局外壳（设置/信息/操作/辅助面板）、教学标签与流程。
+外壳会自动提供：首页卡片、路由、对局弹窗外壳（设置/信息/操作/辅助面板）、教学标签与流程。
 
-## 按棋种定制页面风格
-
-- **皮肤（推荐）**：模块声明 `skin: '<id>'`；外壳在打开棋局时给 `<html>` 设置 `data-game="<id>"`；在 `assets/skins.css` 用 `html[data-game="<id>"] { ... }` 覆盖设计变量或组件样式即可整页换风格。棋盘配色在棋种的 `view.js` 的 `palettes` 中。
-- **整页自定义**：模块声明 `customPage: true` 并提供 `mountPage(container, { onExit })`。外壳会隐藏通用棋盘/侧栏与顶栏页脚，改为渲染该棋种自带页面；离开时调用其 `destroy()`。示例见 `src/games/gomoku/`（支持 13/15/19 路）。
-
-## 牌类扩展
+### 牌类扩展
 
 - 牌堆与洗牌：`src/core/cards.js`
 - 牌面绘制与手牌选择：`src/core/cardgfx.js`（`HandUI`）

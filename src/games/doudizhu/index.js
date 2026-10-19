@@ -8,12 +8,12 @@ import { seatName } from './engine.js';
 
 const art = `
   <svg viewBox="0 0 96 96" width="72" height="72">
-    <rect x="8" y="16" width="32" height="50" rx="7" fill="#fbf7ec" stroke="#b9b0a0" stroke-width="2"/>
-    <text x="24" y="50" font-size="18" text-anchor="middle" fill="#1b1b1b" font-family="serif">♠A</text>
-    <rect x="40" y="10" width="32" height="50" rx="7" fill="#fbf7ec" stroke="#b9b0a0" stroke-width="2"/>
-    <text x="56" y="44" font-size="18" text-anchor="middle" fill="#c0392b" font-family="serif">♥K</text>
-    <rect x="28" y="30" width="32" height="50" rx="7" fill="#fbf7ec" stroke="#b9b0a0" stroke-width="2"/>
-    <text x="44" y="64" font-size="18" text-anchor="middle" fill="#1b1b1b" font-family="serif">大<br/>王</text>
+    <rect x="20" y="14" width="30" height="48" rx="6" fill="#fbf7ec" stroke="#b9b0a0" stroke-width="2"/>
+    <text x="35" y="42" font-size="17" text-anchor="middle" fill="#1b1b1b" font-family="serif">♠A</text>
+    <rect x="46" y="14" width="30" height="48" rx="6" fill="#fbf7ec" stroke="#b9b0a0" stroke-width="2"/>
+    <text x="61" y="42" font-size="17" text-anchor="middle" fill="#c0392b" font-family="serif">♥K</text>
+    <rect x="33" y="30" width="30" height="48" rx="6" fill="#fbf7ec" stroke="#8a8271" stroke-width="2.4"/>
+    <text x="48" y="60" font-size="17" text-anchor="middle" fill="#c0392b" font-family="serif">♦Q</text>
   </svg>`;
 
 export default {

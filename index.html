@@ -6,38 +6,30 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="description" content="中国象棋、韩国象棋、日本将棋、国际象棋、围棋、国际跳棋、六角跳棋、五子棋、黑白棋、斗兽棋，以及 UNO、升级/拖拉机、掼蛋、斗地主，在线对弈，内置本地 AI 与新手教学。" />
-  <title>Neon Arena · 多棋种代码开源平台</title>
+  <meta name="description" content="Neon Arena 开源棋牌引擎平台：象棋、围棋、将棋、UNO 等 14 款棋牌底层代码完全开源，核心逻辑稳定，皮肤与主题完全可定制，基于同一内核打造 3D 象棋、儿童五子棋等专属棋牌产品。" />
+  <title>Neon Arena · 棋牌底层代码开源平台 - 定义自己的主题和皮肤</title>
   <link rel="stylesheet" href="./assets/styles.css" />
   <link rel="stylesheet" href="./assets/skins.css" />
+  <script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('embed');</script>
 </head>
-<body>
+<body class="home-active">
   <header class="topbar">
     <button type="button" class="brand" id="btn-home" aria-label="返回首页">
-      <!-- 占位 logo：霓虹菱形，待设计稿替换 -->
+      <!-- 站点 logo：NEO ARENA 霓虹六角星（透明 PNG） -->
       <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
-          <defs>
-            <linearGradient id="logo-grad" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#00f0ff" />
-              <stop offset="1" stop-color="#ff2e88" />
-            </linearGradient>
-          </defs>
-          <path d="M24 3 45 24 24 45 3 24Z" stroke="url(#logo-grad)" stroke-width="2.4" stroke-linejoin="round" />
-          <path d="M24 13 35 24 24 35 13 24Z" fill="url(#logo-grad)" opacity="0.92" />
-        </svg>
+        <img src="./assets/logo.png" alt="" />
       </span>
-      <span class="brand-text">
+      <!-- <span class="brand-text">
         <strong>弈趣棋坊</strong>
-        <span>NEON BOARD ARENA</span>
-      </span>
+        <span>NEON ARENA FOR DEVELOPERS</span>
+      </span> -->
     </button>
 
     <nav class="topnav" aria-label="主导航">
-      <a class="topnav-link is-active" href="#/">首页</a>
+      <a class="topnav-link is-active" href="#/" data-scroll="top">首页</a>
       <a class="topnav-link" href="#/" data-scroll="#home-grid">棋库</a>
-      <a class="topnav-link" href="#/" data-scroll="#home-grid">AI对战</a>
-      <a class="topnav-link" href="https://github.com/wenlibo90/board-games" target="_blank" rel="noopener noreferrer">开源</a>
+      <a class="topnav-link" href="#/" data-buddy>AI陪练</a>
+      <a class="topnav-link" href="#/" data-scroll="#home-dev">教程</a>
     </nav>
 
     <nav id="game-tabs" class="mode-switch is-hidden" aria-label="模式切换">
@@ -69,12 +61,11 @@
         </span>
 
         <div class="hero-inner">
-          <h1 class="hero-title"><span class="hero-title-text">霓虹棋盘，即刻落子</span></h1>
-          <p class="hero-sub">传统棋类与卡牌对战平台，AI 陪练陪你入门</p>
+          <h1 class="hero-title"><span class="hero-title-text">一套内核，千种棋界</span></h1>
+          <p class="hero-sub">14 款棋牌底层引擎完全开源 —— 核心逻辑稳定，只改显示层，创造你的 3D 象棋、儿童五子棋</p>
           <div class="hero-cta">
-            <button type="button" class="hero-btn" data-scroll="#home-grid">进入对局</button>
-            <!-- 占位链接：规则页待开发 -->
-            <a class="hero-rule" href="#" data-placeholder>查看规则</a>
+            <button type="button" class="hero-btn" data-scroll="#home-grid">查看演示</button>
+            <a class="hero-rule" href="https://github.com/wenlibo90/board-games" target="_blank" rel="noopener noreferrer">GitHub · 开发指南</a>
           </div>
         </div>
       </div>
@@ -86,44 +77,110 @@
       </div>
 
       <div class="home-section-head">
-        <span class="home-section-tag">// SELECT YOUR GAME</span>
-        <h2>选择你的战场</h2>
+        <span class="home-section-tag">// BUILT-IN ENGINES</span>
+        <h2>内置引擎 · 即取即用</h2>
         <span class="home-section-line" aria-hidden="true"></span>
       </div>
 
       <div id="home-grid" class="home-grid"></div>
+
+      <!-- 开发者定位：核心逻辑 × 显示层分离 -->
+      <div class="home-dev" id="home-dev">
+        <div class="home-dev-head">
+          <span class="home-section-tag">// FOR DEVELOPERS</span>
+          <h2>核心逻辑不变，显示层随心造</h2>
+          <p>走子规则、AI 决策、胜负判定沉淀为稳定内核；棋盘、棋子、主题、动效全部外置可替换。改配置、换样式，就能发布一款全新的棋牌产品。</p>
+        </div>
+        <div class="home-dev-grid">
+          <div class="home-dev-card">
+            <h3>01 · 稳定内核</h3>
+            <p>14 款棋牌的规则引擎与本地 AI 已内建，无需重复造轮子，专注你的创意层。</p>
+          </div>
+          <div class="home-dev-card">
+            <h3>02 · 皮肤系统</h3>
+            <p>棋盘、棋子、配色、动效层层解耦，改 CSS / 主题配置即改即生效。</p>
+          </div>
+          <div class="home-dev-card">
+            <h3>03 · 无限形态</h3>
+            <p>3D 象棋、儿童五子棋、国风围棋……同一内核，衍生属于你的棋牌产品。</p>
+          </div>
+        </div>
+        <a class="home-dev-cta" href="https://github.com/wenlibo90/board-games" target="_blank" rel="noopener noreferrer">Fork on GitHub →</a>
+      </div>
     </section>
 
-    <!-- 棋局视图 -->
-    <section id="game-view" class="is-hidden">
-      <div id="custom-page-host" class="is-hidden"></div>
-      <div class="game-header">
-        <h1 id="game-title"></h1>
-        <p id="game-tagline"></p>
-      </div>
+    <!-- 棋局弹窗：卡片点击在当前页弹窗内打开对局 -->
+    <section id="game-view" class="game-modal is-hidden">
+      <div class="game-modal-panel game-modal-panel--frame">
 
-      <div id="play-panel">
-        <div class="game-layout">
-          <div class="board-panel">
-            <div class="board-frame" id="board-frame">
-              <canvas id="game-canvas" class="board-canvas" aria-label="棋盘"></canvas>
-            </div>
-            <div id="result-banner" class="result-banner is-hidden" role="status" aria-live="polite">
-              <span id="result-text"></span>
-            </div>
-          </div>
-          <aside class="side-panel" id="side-panel"></aside>
+        <!-- 运行台控制条：仅父页弹窗模式显示 -->
+        <div class="game-frame-bar">
+          <span class="game-runtime-tag" aria-hidden="true">// ENGINE RUNTIME</span>
+          <strong id="game-frame-title" class="game-frame-title"></strong>
+          <a class="runtime-link" id="runtime-source-link" href="javascript:void(0)" title="全屏查看源码（双击源码区还原）">查看引擎源码 →</a>
+          <button type="button" id="game-modal-close" class="game-modal-close" aria-label="关闭对局" title="关闭 (Esc)">✕</button>
         </div>
-      </div>
 
-      <div id="tutorial-panel" class="is-hidden">
-        <div id="tutorial-host"></div>
+        <!-- 对局运行时：父页模式下以 iframe 加载完整运行页 -->
+        <iframe id="game-frame" class="game-frame" title="引擎运行台"></iframe>
+
+        <!-- 以下结构仅 iframe 嵌入模式（?embed=<id>）内部使用，父页模式下由 CSS 隐藏 -->
+        <div id="custom-page-host" class="is-hidden"></div>
+        <div class="game-header">
+          <div class="game-runtime-tag" aria-hidden="true">// ENGINE RUNTIME</div>
+          <h1 id="game-title"></h1>
+          <p id="game-tagline"></p>
+          <div class="game-runtime-badges" id="game-runtime-badges"></div>
+        </div>
+
+        <div id="play-panel">
+          <div class="game-layout">
+            <div class="board-panel">
+              <div class="board-frame" id="board-frame">
+                <canvas id="game-canvas" class="board-canvas" aria-label="棋盘"></canvas>
+              </div>
+              <div id="result-banner" class="result-banner is-hidden" role="status" aria-live="polite">
+                <span id="result-text"></span>
+              </div>
+            </div>
+            <aside class="side-panel" id="side-panel"></aside>
+          </div>
+        </div>
+
+        <div id="tutorial-panel" class="is-hidden">
+          <div id="tutorial-host"></div>
+        </div>
+
+        <div class="game-runtime-foot">
+          <span class="runtime-path" id="runtime-path"></span>
+          <a class="runtime-link" href="https://github.com/wenlibo90/board-games" target="_blank" rel="noopener noreferrer">查看引擎源码 →</a>
+        </div>
       </div>
     </section>
   </main>
 
+  <!-- AI 陪练小机器人：首页悬浮助手，点击弹出模拟对话 -->
+  <div class="ai-buddy" id="ai-buddy">
+    <div class="ai-buddy-panel is-hidden" id="ai-buddy-panel" role="dialog" aria-label="AI 陪练对话">
+      <div class="ai-buddy-head">
+        <span class="ai-buddy-status"></span>
+        <span class="ai-buddy-title">AI 陪练 · Neon Bot</span>
+        <button type="button" class="ai-buddy-close" id="ai-buddy-close" aria-label="关闭对话">✕</button>
+      </div>
+      <div class="ai-buddy-msgs" id="ai-buddy-msgs"></div>
+      <div class="ai-buddy-chips" id="ai-buddy-chips"></div>
+      <form class="ai-buddy-form" id="ai-buddy-form">
+        <input type="text" id="ai-buddy-text" placeholder="输入问题，回车发送…" autocomplete="off" maxlength="60" />
+        <button type="submit">发送</button>
+      </form>
+    </div>
+    <button type="button" class="ai-buddy-fab" id="ai-buddy-fab" aria-label="AI 陪练">
+      <video src="./assets/assistant.webm" autoplay muted loop playsinline></video>
+    </button>
+  </div>
+
   <footer class="footer">
-    <span>弈趣棋坊 · 14 款棋牌 · 本地 AI · 无需联网</span>
+    <span>Neon Arena · 棋牌底层代码开源引擎 · 一套内核，主题随意定制，全平台客户端支持</span>
   </footer>
 
   <script type="module" src="./src/app.js?v=20"></script>

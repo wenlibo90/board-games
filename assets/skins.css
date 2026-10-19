@@ -170,12 +170,19 @@ html[data-game='gomoku'] .footer {
   color: rgba(156, 163, 175, 0.7);
 }
 
-/* 布局：侧栏在左、棋盘在右 */
-html[data-game='gomoku'] .game-layout {
-  grid-template-columns: 348px minmax(0, 1fr);
+/* 布局：与其他引擎一致（棋盘在左、信息栏在右），由通用样式控制 */
+
+/* 暂时隐藏五子棋侧栏统计格（黑子/白子/步数），其他引擎不受影响 */
+html[data-game='gomoku'] .stat-grid {
+  display: none;
 }
-html[data-game='gomoku'] .side-panel { order: 1; }
-html[data-game='gomoku'] .board-panel { order: 2; }
+
+/* 暂时隐藏围棋侧栏的执子设置与显示辅助开关（显示气/显示可落子点），其他引擎不受影响 */
+html[data-game='go'] .field:has([data-setup='humanColor']),
+html[data-game='go'] .switch:has([data-helper='showLiberties']),
+html[data-game='go'] .switch:has([data-helper='showLegal']) {
+  display: none;
+}
 
 html[data-game='gomoku'] .game-header h1 { color: #f3f4f6; }
 html[data-game='gomoku'] .game-header p { color: #9ca3af; }

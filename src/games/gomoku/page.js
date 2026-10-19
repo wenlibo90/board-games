@@ -1,5 +1,4 @@
 // 五子棋整页视图：木纹棋盘、落子动画、连珠发光、音效、礼花与结算弹窗。
-
 import { MARKUP } from './markup.js';
 
 const CSS_HREF = './assets/gomoku-page.css';

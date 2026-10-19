@@ -1,10 +1,8 @@
 // 五子棋模块清单
-
 import * as engine from './engine.js';
 import * as ai from './ai.js';
 import { createView, palettes } from './view.js';
 import { lessons, tutorial } from './lessons.js';
-import { mountPage } from './page.js';
 import { BLACK, WHITE, colorName } from './engine.js';
 
 const art = `
@@ -26,8 +24,6 @@ export default {
   description: '自由规则五子棋，AI 具备基础进攻与防守判断，适合练习连子与堵截。',
   accent: '#d29034',
   skin: 'gomoku',
-  customPage: true,
-  mountPage,
   art,
   palettes,
   createView,

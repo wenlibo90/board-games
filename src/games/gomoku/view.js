@@ -1,5 +1,4 @@
 // 五子棋棋盘视图：木纹棋盘、落子动画、最后落子脉冲、连珠发光
-
 import { EMPTY, BLACK, WHITE } from './engine.js';
 import { BoardStage } from '../../core/stage.js';
 
@@ -167,13 +166,20 @@ export function createView(canvas, opts = {}) {
       if (v === EMPTY) continue;
       const p = point(i);
       if (i === animIdx && i === g.lastMove) {
-        const prog = ease((t - animStart) / 380);
-        const scaleX = 1.28 - 0.28 * prog;
-        const scaleY = 0.72 + 0.28 * prog;
-        const dy = -(1 - prog) * cell * 1.2;
+        // 落子动画：棋子从观者正前方落到盘面——由大缩小（近→落定），投影由虚大收缩到实
+        const prog = ease((t - animStart) / 300);
+        const lift = 1 - prog; // 悬空程度
+        const scale = 1 + lift * lift * 0.6 - Math.sin(prog * Math.PI) * 0.06;
         ctx.save();
-        ctx.translate(p.x, p.y + dy);
-        ctx.scale(scaleX, scaleY);
+        ctx.globalAlpha = 0.3 * (0.35 + 0.65 * prog);
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y + r * 0.2, r * (0.72 + lift * 0.85), r * (0.34 + lift * 0.48), 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(scale, scale);
         stone(ctx, 0, 0, v, 1, 0);
         ctx.restore();
       } else {

@@ -1,5 +1,4 @@
 // 五子棋规则引擎（自由规则，无禁手）
-
 export const EMPTY = 0;
 export const BLACK = 1;
 export const WHITE = 2;

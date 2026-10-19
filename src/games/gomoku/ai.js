@@ -1,5 +1,4 @@
 // 五子棋 AI：威胁评估 + 浅层搜索
-
 import { EMPTY, BLACK, WHITE, opponent, findFive } from './engine.js';
 
 const DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]];
