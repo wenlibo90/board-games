@@ -27,6 +27,10 @@ export const palettes = {
 
 export function createView(canvas, opts = {}) {
   const palette = opts.palette || palettes.light;
+  // 可选：自定义棋子图片（key 为棋子编码 color*10+type → Image），未提供时回落为圆片汉字
+  const pieces = opts.pieces || null;
+  // 可选：棋盘底图（自带木框/格线/九宫/河界美术），传入后跳过规则绘制，仅叠棋子与高亮
+  const boardImage = opts.boardImage || null;
   const state = { game: null, decor: [], hint: null, overlay: null };
   let cell = 30, ox = 0, oy = 0, r = 13;
   let selected = -1;
@@ -47,6 +51,12 @@ export function createView(canvas, opts = {}) {
       pick(i);
     },
   });
+
+  // 自定义棋子图片 / 棋盘底图异步就绪后重绘（加载失败自然回落默认绘制）
+  const asyncImgs = [...Object.values(pieces || {}), ...(boardImage ? [boardImage] : [])];
+  for (const img of asyncImgs) {
+    if (!img.complete) img.addEventListener('load', () => stage.render(), { once: true });
+  }
 
   function pt(i) {
     return { x: ox + xOf(i) * cell, y: oy + yOf(i) * cell };
@@ -92,14 +102,23 @@ export function createView(canvas, opts = {}) {
   }
 
   function drawBoard(ctx, w, h) {
+    const gx0 = ox, gx1 = ox + cell * (COLS - 1);
+    const gy0 = oy, gy1 = oy + cell * (ROWS - 1);
+
+    // 底图模式：木框/格线/九宫/河界全部由图承载，按网格外扩半格矩形拉伸贴合，
+    // 使图内交叉点与落子网格对齐（素材格子非严格等比，轻微拉伸木纹无感）
+    if (boardImage && boardImage.complete && boardImage.naturalWidth > 0) {
+      const e = cell * 0.5;
+      ctx.drawImage(boardImage, gx0 - e, gy0 - e, gx1 - gx0 + 2 * e, gy1 - gy0 + 2 * e);
+      return;
+    }
+
     const g = ctx.createLinearGradient(0, 0, w, h);
     g.addColorStop(0, palette.board1);
     g.addColorStop(1, palette.board2);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
-    const gx0 = ox, gx1 = ox + cell * (COLS - 1);
-    const gy0 = oy, gy1 = oy + cell * (ROWS - 1);
     ctx.strokeStyle = palette.line;
     ctx.lineWidth = Math.max(1, cell * 0.035);
 
@@ -155,35 +174,42 @@ export function createView(canvas, opts = {}) {
 
   function drawPiece(ctx, i, p, isSelected) {
     const c = pt(i);
+    const img = pieces && pieces[p];
     ctx.save();
     ctx.shadowColor = 'rgba(60, 40, 15, 0.35)';
     ctx.shadowBlur = r * 0.45;
     ctx.shadowOffsetY = r * 0.14;
-    const grad = ctx.createRadialGradient(c.x - r * 0.3, c.y - r * 0.35, r * 0.15, c.x, c.y, r);
-    grad.addColorStop(0, palette.disc1);
-    grad.addColorStop(1, palette.disc2);
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    if (img && img.complete && img.naturalWidth > 0) {
+      // 自定义棋子图片（萌趣 PNG 等）
+      ctx.drawImage(img, c.x - r, c.y - r, r * 2, r * 2);
+    } else {
+      // 默认：圆片 + 汉字
+      const grad = ctx.createRadialGradient(c.x - r * 0.3, c.y - r * 0.35, r * 0.15, c.x, c.y, r);
+      grad.addColorStop(0, palette.disc1);
+      grad.addColorStop(1, palette.disc2);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
 
-    const isRed = colorOf(p) === RED;
-    ctx.strokeStyle = isRed ? palette.redRing : palette.blackRing;
-    ctx.lineWidth = Math.max(1.5, r * 0.12);
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, r * 0.94, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.lineWidth = Math.max(1, r * 0.06);
-    ctx.beginPath();
-    ctx.arc(c.x, c.y, r * 0.78, 0, Math.PI * 2);
-    ctx.stroke();
+      const isRed = colorOf(p) === RED;
+      ctx.strokeStyle = isRed ? palette.redRing : palette.blackRing;
+      ctx.lineWidth = Math.max(1.5, r * 0.12);
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, r * 0.94, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = Math.max(1, r * 0.06);
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, r * 0.78, 0, Math.PI * 2);
+      ctx.stroke();
 
-    ctx.fillStyle = isRed ? palette.redChar : palette.blackChar;
-    ctx.font = `700 ${r * 1.15}px "KaiTi", "STKaiti", "PingFang SC", serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(PIECE_LABEL[p], c.x, c.y + r * 0.04);
+      ctx.fillStyle = isRed ? palette.redChar : palette.blackChar;
+      ctx.font = `700 ${r * 1.15}px "KaiTi", "STKaiti", "PingFang SC", serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(PIECE_LABEL[p], c.x, c.y + r * 0.04);
+    }
 
     if (isSelected) {
       ctx.strokeStyle = palette.select;

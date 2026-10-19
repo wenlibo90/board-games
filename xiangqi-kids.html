@@ -1,0 +1,391 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>儿童象棋 · Kids Xiangqi</title>
+  <style>
+    /* 儿童象棋：森林背景 + 木质图片按钮（素材自带文字）+ 原始象棋视图（棋子换成萌趣 PNG） */
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      height: 100dvh;
+      overflow: hidden; /* 固定视口布局，杜绝滚动条 */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: url('./assets/kids-xiangqi/background.webp') center / cover no-repeat, #2c5a34;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    /* 顶部导航（图片按钮自带文字） */
+    nav {
+      display: flex;
+      gap: clamp(10px, 2vw, 22px);
+      margin-top: clamp(10px, 2vh, 18px);
+      position: relative;
+      z-index: 1;
+    }
+
+    .wood-btn {
+      border: none;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wood-btn img {
+      height: clamp(34px, 5.4vh, 46px);
+      display: block;
+      transition: transform 0.15s, filter 0.15s;
+    }
+    .wood-btn:hover img { transform: scale(1.06); filter: brightness(1.1); }
+    .wood-btn:active img { transform: scale(0.96); }
+    .wood-btn:disabled img { filter: grayscale(0.55) brightness(0.72); cursor: not-allowed; }
+    a.wood-btn { text-decoration: none; }
+
+    /* 对局状态（深色半透明胶囊，不抢背景画面） */
+    #status {
+      margin: clamp(6px, 1vh, 10px) 14px 0;
+      padding: 4px 16px;
+      border-radius: 999px;
+      background: rgba(15, 38, 22, 0.55);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      position: relative;
+      z-index: 1;
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .board {
+      width: min(94vw, calc(100dvh - 215px), 760px);
+      aspect-ratio: 1 / 1;
+      max-width: 100%;
+    }
+
+    canvas { width: 100%; height: 100%; display: block; cursor: pointer; }
+
+    /* 底部操作区 */
+    footer {
+      display: flex;
+      gap: clamp(12px, 2.4vw, 26px);
+      margin-bottom: clamp(10px, 2vh, 18px);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 左侧案例说明面板（页面 README，与右侧扫码卡片对称） */
+    .case-note {
+      position: fixed;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 254px;
+      padding: 14px 16px 13px;
+      background: rgba(255, 252, 240, 0.93);
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(10, 30, 15, 0.35);
+      z-index: 5;
+    }
+    .case-note .tag {
+      font-family: Consolas, Monaco, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #e8578a;
+      letter-spacing: 0.5px;
+    }
+    .case-note h2 {
+      margin: 4px 0 2px;
+      font-size: 16px;
+      color: #23331f;
+    }
+    .case-note h2 em { font-style: normal; font-size: 11px; color: #7c6a52; margin-left: 6px; }
+    .case-note .lead { margin: 0 0 8px; font-size: 12.5px; font-weight: 700; color: #2e6e3e; }
+    .case-note p { margin: 0 0 8px; font-size: 12px; line-height: 1.6; color: #4a3a28; }
+    .case-note ul { margin: 0 0 8px; padding: 0; list-style: none; }
+    .case-note li {
+      display: flex;
+      gap: 8px;
+      font-size: 11.5px;
+      line-height: 1.9;
+      color: #4a3a28;
+    }
+    .case-note li b { flex: none; width: 92px; font-weight: 700; color: #23331f; }
+    .case-note pre {
+      margin: 0 0 9px;
+      padding: 7px 9px;
+      background: #17301f;
+      border-radius: 8px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      color: #9fe0af;
+      overflow: hidden;
+    }
+    .case-note a {
+      font-size: 12px;
+      font-weight: 700;
+      color: #2e6e3e;
+      text-decoration: none;
+    }
+    .case-note a:hover { text-decoration: underline; }
+
+    @media (max-width: 1240px) {
+      .case-note { display: none; } /* 窄屏两侧无留白，隐藏说明面板 */
+    }
+
+    /* 右侧扫码卡片（运行时按当前地址生成二维码，内嵌精简 QR 无外部依赖） */
+    .qr-card {
+      position: fixed;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 112px;
+      padding: 8px 8px 5px;
+      background: rgba(255, 252, 240, 0.94);
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(10, 30, 15, 0.35);
+      text-align: center;
+      cursor: pointer;
+      z-index: 5;
+      transition: transform 0.15s;
+    }
+    .qr-card:hover { transform: translateY(-50%) scale(1.06); }
+    .qr-card canvas { width: 100%; display: block; image-rendering: pixelated; border-radius: 4px; }
+    .qr-card span { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; color: #4a3a28; }
+
+    @media (max-width: 960px) {
+      .qr-card { display: none; } /* 移动端无需扫码入口 */
+    }
+
+    /* 轻提示气泡（学棋/规则等未上线入口） */
+    #toast {
+      position: fixed;
+      top: clamp(64px, 9vh, 86px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-6px);
+      padding: 7px 18px;
+      border-radius: 999px;
+      background: rgba(15, 38, 22, 0.78);
+      color: #ffe9b8;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 9;
+    }
+    #toast.is-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="wood-btn" href="./index.html" aria-label="返回首页"><img src="./assets/kids-xiangqi/btn-s.png" alt="首页" /></a>
+    <button type="button" class="wood-btn" data-toast="学棋模式即将上线，敬请期待"><img src="./assets/kids-xiangqi/btn-x.png" alt="学棋" /></button>
+    <button type="button" class="wood-btn" disabled aria-label="当前页面：对战"><img src="./assets/kids-xiangqi/btn-d.png" alt="对战" /></button>
+    <button type="button" class="wood-btn" data-toast="规则说明即将上线，敬请期待"><img src="./assets/kids-xiangqi/btn-g.png" alt="规则" /></button>
+  </nav>
+
+  <span id="status">加载中…</span>
+
+  <main>
+    <div class="board"><canvas id="board"></canvas></div>
+  </main>
+
+  <footer>
+    <button type="button" class="wood-btn" id="btn-undo"><img src="./assets/kids-xiangqi/btn-h.png" alt="悔棋" /></button>
+    <button type="button" class="wood-btn" id="btn-restart"><img src="./assets/kids-xiangqi/btn-a.png" alt="重新开始" /></button>
+    <button type="button" class="wood-btn" id="btn-hint"><img src="./assets/kids-xiangqi/btn-t.png" alt="提示" /></button>
+  </footer>
+
+  <div id="toast" role="status"></div>
+
+  <!-- 左侧案例说明：这个页面是什么、怎么做的（相当于页面 README） -->
+  <aside class="case-note">
+    <span class="tag">// CASE · 案例示例</span>
+    <h2>儿童象棋<em>KIDS XIANGQI</em></h2>
+    <p class="lead">同一内核，换层皮肤。</p>
+    <p>本页没有写任何新规则：棋规、AI、音效全部复用内置中国象棋引擎，只把显示层换成萌趣棋子与卡通棋盘。</p>
+    <ul>
+      <li><b>棋规 / AI / 音效</b><span>引用 src/games/xiangqi，零改动</span></li>
+      <li><b>棋子 + 棋盘</b><span>pieces / boardImage 两个参数换装</span></li>
+      <li><b>页面本体</b><span>单 HTML 文件，无构建、无依赖</span></li>
+    </ul>
+    <pre>&lt;canvas&gt; + createView({
+  pieces: 萌趣棋子,
+  boardImage: 卡通棋盘,
+})</pre>
+    <p>换一套素材，就是另一款棋牌产品。</p>
+    <a href="https://github.com/wenlibo90/board-games/tree/main/src/games/xiangqi" target="_blank" rel="noopener noreferrer">GitHub · 查看内核源码 →</a>
+  </aside>
+
+  <!-- 右侧扫码卡片：手机扫码直接打开当前页（qrcodejs 由 BootCDN 提供，国内可达） -->
+  <aside class="qr-card" id="qr-card" title="手机扫码打开">
+    <div id="qr-canvas" aria-label="页面地址二维码"></div>
+    <span>扫码 · 手机对弈</span>
+  </aside>
+
+  <script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script type="module">
+    // 表现层：棋盘直接引用项目原始象棋视图，棋子通过可选 pieces 参数换成萌趣 PNG
+    // 棋规 / AI / 音效来自项目共享模块，页面本身只有对弈控制与儿童界面逻辑
+    import {
+      RED, BLACK, K, A, E, H, R, C, P, XiangqiGame, piece,
+    } from './src/games/xiangqi/engine.js';
+    import { chooseMove } from './src/games/xiangqi/ai.js';
+    import { createView, palettes } from './src/games/xiangqi/view.js';
+    import { place as playPlace, chime as playChime } from './src/core/sfx.js';
+
+    // 儿童棋子 PNG：棋子编码（color*10+type）→ 图片
+    const KIDS_PIECES = {};
+    for (const [color, prefix] of [[RED, 'red'], [BLACK, 'black']]) {
+      for (const [type, letter] of [[K, 'k'], [A, 'a'], [E, 'e'], [H, 'h'], [R, 'r'], [C, 'c'], [P, 'p']]) {
+        const im = new Image();
+        im.src = `./assets/kids-xiangqi/${prefix}-${letter}.png`;
+        KIDS_PIECES[piece(color, type)] = im;
+      }
+    }
+
+    // 儿童棋盘底图（自带木框/格线/九宫/河界美术，替代默认渐变棋盘）
+    const BOARD_IMG = new Image();
+    BOARD_IMG.src = './assets/kids-xiangqi/bord.png';
+
+    const statusEl = document.getElementById('status');
+    const toastEl = document.getElementById('toast');
+    const undoBtn = document.getElementById('btn-undo');
+    const restartBtn = document.getElementById('btn-restart');
+    const hintBtn = document.getElementById('btn-hint');
+
+    let game = new XiangqiGame();
+    let thinking = false;
+    let aiTimer = null;
+
+    const view = createView(document.getElementById('board'), {
+      palette: palettes.light,
+      pieces: KIDS_PIECES,
+      boardImage: BOARD_IMG,
+      onMove: humanMove,
+    });
+
+    function statusText() {
+      if (game.ended) return game.result ? game.result.text : '对局结束';
+      if (thinking) return '黑方思考中…';
+      const check = game.inCheck(game.turn);
+      if (!game.moves.length) return check ? '将军！红方走棋' : '红方走棋 · 点一颗红棋开始';
+      const side = game.turn === RED ? '红方' : '黑方';
+      return check ? `将军！${side}走棋` : `${side}走棋`;
+    }
+
+    function refresh() {
+      view.render(game);
+      view.interactive = !game.ended && !thinking;
+      statusEl.textContent = statusText();
+      undoBtn.disabled = thinking || !game.moves.length;
+    }
+
+    function clearHint() {
+      view.setHint(null);
+    }
+
+    function humanMove(mv) {
+      if (thinking || game.ended) return;
+      if (!game.play(mv).ok) return;
+      clearHint();
+      playPlace();
+      refresh();
+      if (game.ended) { playChime(); return; }
+      // AI 回合（初级难度，稍作停顿更贴近真实对弈）
+      thinking = true;
+      refresh();
+      aiTimer = setTimeout(() => {
+        aiTimer = null;
+        try {
+          const mv2 = chooseMove(game, 'medium');
+          if (mv2 && !game.ended) { game.play(mv2); playPlace(); }
+        } finally {
+          thinking = false;
+          refresh();
+          if (game.ended) playChime();
+        }
+      }, 320);
+    }
+
+    function undo() {
+      if (thinking || !game.moves.length) return;
+      game.undo();
+      // 人执红先手：撤掉 AI 应手后若轮到黑方，再撤一步回到红方回合
+      if (!game.ended && game.turn !== RED && game.moves.length) game.undo();
+      clearHint();
+      refresh();
+    }
+
+    function restart() {
+      if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+      thinking = false;
+      game = new XiangqiGame();
+      clearHint();
+      refresh();
+    }
+
+    // 提示：让 AI 替红方算一步最优着法，绿环高亮起点与落点
+    function hint() {
+      if (thinking || game.ended) return;
+      const mv = chooseMove(game, 'hard');
+      if (mv) view.setHint(mv);
+    }
+
+    let toastTimer = null;
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add('is-show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('is-show'), 2000);
+    }
+
+    document.querySelectorAll('[data-toast]').forEach((el) => {
+      el.addEventListener('click', () => showToast(el.dataset.toast));
+    });
+    undoBtn.addEventListener('click', undo);
+    restartBtn.addEventListener('click', restart);
+    hintBtn.addEventListener('click', hint);
+
+    // ---------- 右侧扫码卡片：qrcodejs（BootCDN）按当前地址生成，加载失败自动隐藏卡片 ----------
+    (function initQR() {
+      const card = document.getElementById('qr-card');
+      if (typeof QRCode === 'undefined') { card.style.display = 'none'; return; }
+      new QRCode(document.getElementById('qr-canvas'), {
+        text: location.href,
+        width: 98,
+        height: 98,
+        colorDark: '#1c4d2c',
+        colorLight: '#fffcf0',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+      // 本机地址（localhost / 127.0.0.1）手机无法访问，点击给提示
+      if (['localhost', '127.0.0.1', ''].includes(location.hostname)) {
+        card.addEventListener('click', () => showToast('当前是本机地址，手机扫码打不开——用局域网 IP 访问本页后再扫'));
+      }
+    })();
+
+    refresh();
+    view.resize();
+  </script>
+</body>
+</html>
