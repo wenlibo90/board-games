@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>糖果五子棋 · Candy Gomoku</title>
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: url('./assets/candy-gomoku/bg.webp') center / cover no-repeat fixed #f9c9d8;
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      user-select: none;
+    }
+
+    /* 四周星心糖装饰：垫在最底层，只作背景点缀，不遮挡任何卡片与按钮 */
+    .decor {
+      position: fixed;
+      inset: 0;
+      background: url('./assets/candy-gomoku/decor.webp') center / contain no-repeat;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 顶部：logo 左 + 星星面板右 */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: clamp(8px, 1.6vh, 16px) clamp(12px, 2.4vw, 28px);
+      position: relative;
+      z-index: 1;
+    }
+    .logo { height: clamp(44px, 7.4vh, 64px); }
+    /* 右上角记分板：星星面板图 + 左右两个位置叠加胜局数（0-9） */
+    .scoreboard { position: relative; }
+    .scoreboard img { height: clamp(38px, 6.2vh, 54px); display: block; }
+    .score {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-size: clamp(11px, 1.7vh, 15px);
+      font-weight: 800;
+      line-height: 1;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(120, 60, 90, 0.35);
+      pointer-events: none;
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+    .score--pink { left: 38.7%; }
+    .score--blue { left: 85.8%; }
+
+    /* 主区：左侧头像列 + 棋盘 + 右侧按钮面板 */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(14px, 3vw, 44px);
+      padding: 0 clamp(12px, 2.6vw, 30px) clamp(10px, 2vh, 20px);
+      position: relative;
+      z-index: 1;
+      min-height: 0;
+    }
+
+    .players {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(16px, 4vh, 40px);
+    }
+    .avatar {
+      width: clamp(72px, 12.5vh, 118px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      /* 素材四角是透明区域，补一层粉色底，避免透出背后的星星装饰 */
+      background: radial-gradient(circle, #fff4f8 55%, #f7a8c0 100%);
+      transition: transform 0.25s, filter 0.25s;
+    }
+    /* 落子强调：哪个头像刚落子，哪个弹一下并短暂发光，很快恢复常态 */
+    .avatar.is-turn {
+      transform: scale(1.08);
+      filter: drop-shadow(0 0 12px rgba(255, 120, 175, 0.95));
+    }
+    .avatar.is-move { animation: pop 0.34s ease-out; }
+    @keyframes pop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.14); }
+      100% { transform: scale(1.08); }
+    }
+    /* 状态胶囊：明确当前轮到谁，避免把「落子强调」误读成对方在走 */
+    .turn-pill {
+      align-self: center;
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      font-size: 12px;
+      font-weight: 700;
+      color: #d64570;
+      white-space: nowrap;
+      box-shadow: 0 3px 10px rgba(190, 80, 120, 0.22);
+      transition: color 0.2s;
+    }
+    .turn-pill.is-ai { color: #3f8fc4; }
+    .turn-pill.is-over { color: #b07d18; }
+
+    .board {
+      width: min(92vw, calc(100dvh - 150px), 680px);
+      aspect-ratio: 1255 / 1170;
+      max-width: 100%;
+      filter: drop-shadow(0 10px 22px rgba(180, 90, 120, 0.35));
+    }
+    canvas { width: 100%; height: 100%; display: block; cursor: pointer; }
+
+    /* 右侧按钮面板（panel.webp 竖长白板打底） */
+    .actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(10px, 2.2vh, 22px);
+      padding: clamp(14px, 3vh, 30px) clamp(12px, 1.6vw, 22px);
+      background: url('./assets/candy-gomoku/panel.webp') center / 100% 100% no-repeat;
+    }
+    .candy-btn {
+      width: clamp(88px, 11.5vh, 124px);
+      aspect-ratio: 368 / 188;
+      border: 0;
+      background-color: transparent; /* 去掉按钮默认底色，否则会从 PNG 透明区透出矩形色块 */
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .candy-btn:hover { transform: scale(1.05); }
+    .candy-btn:active { transform: scale(0.96); }
+    .candy-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+    .candy-btn--start { background-image: url('./assets/candy-gomoku/buttons-k.webp'); }
+    .candy-btn--undo { background-image: url('./assets/candy-gomoku/buttons-c.webp'); }
+    .candy-btn--restart { background-image: url('./assets/candy-gomoku/buttons-r.webp'); }
+
+    /* 左侧案例说明面板：整体弱化（半透明 + 磨砂 + 低对比），避免抢夺棋盘视觉焦点 */
+    .case-note {
+      position: fixed;
+      left: 52px;
+      top: 52%;
+      transform: translateY(-50%);
+      width: 254px;
+      max-height: calc(100dvh - 24px);
+      overflow-y: auto;
+      padding: 14px 16px 13px;
+      background: rgba(255, 252, 240, 0.62);
+      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(140, 60, 90, 0.14);
+      z-index: 5;
+    }
+    .case-note .tag {
+      font-family: Consolas, Monaco, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cf8ba4;
+      letter-spacing: 0.5px;
+    }
+    .case-note h2 {
+      margin: 4px 0 2px;
+      font-size: 16px;
+      color: #6b545f;
+    }
+    .case-note h2 em { font-style: normal; font-size: 11px; color: #b5a0ab; margin-left: 6px; }
+    .case-note .lead { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; color: #c08fa2; }
+    .case-note p { margin: 0 0 8px; font-size: 12px; line-height: 1.6; color: #82707a; }
+    .case-note ul { margin: 0 0 8px; padding: 0; list-style: none; }
+    .case-note li {
+      display: flex;
+      gap: 8px;
+      font-size: 11.5px;
+      line-height: 1.9;
+      color: #82707a;
+    }
+    .case-note li b { flex: none; width: 92px; font-weight: 700; color: #6b545f; }
+    .case-note pre {
+      margin: 0 0 9px;
+      padding: 7px 9px;
+      background: rgba(109, 68, 86, 0.42);
+      border-radius: 8px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      color: #f0d9e3;
+      overflow: hidden;
+    }
+    .case-note a {
+      font-size: 12px;
+      font-weight: 600;
+      color: #bb8ba0;
+      text-decoration: none;
+    }
+    .case-note a:hover { text-decoration: underline; }
+
+    /* 面板底部的「上一个案例」入口（结构与儿童象棋页的 next-case 对齐） */
+    .case-note .note-divider {
+      height: 1px;
+      margin: 11px 0 10px;
+      background: linear-gradient(90deg, transparent, rgba(190, 150, 165, 0.4), transparent);
+    }
+    .case-note .back-case {
+      display: block;
+      padding: 10px 12px 11px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.42);
+      border: 1.5px dashed rgba(156, 207, 168, 0.75);
+      color: #6f8f78;
+      text-decoration: none;
+      transition: transform 0.16s, box-shadow 0.16s, background 0.16s;
+    }
+    .case-note .back-case:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 6px 16px rgba(60, 130, 80, 0.14);
+      text-decoration: none;
+    }
+    .case-note .back-case .tag { display: block; margin-bottom: 6px; font-size: 10px; color: #7fa98c; }
+    .case-note .back-case img { width: 100%; display: block; padding: 2px 0 4px; }
+    .case-note .back-case .nc-desc {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: #8fa398;
+      text-align: center;
+    }
+    .case-note .back-case .nc-desc em { font-style: normal; font-weight: 800; color: #7fa98c; }
+
+    @media (max-width: 1240px) {
+      .case-note { display: none; } /* 窄屏两侧无留白，隐藏说明面板 */
+    }
+    @media (min-width: 1241px) {
+      main { padding-left: 286px; } /* 给固定说明面板留出空间，避免压住棋盘 */
+    }
+
+    /* 轻提示气泡 */
+    #toast {
+      position: fixed;
+      top: clamp(64px, 10vh, 90px);
+      left: 50%;
+      transform: translate(-50%, -8px);
+      padding: 9px 18px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #d64570;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(190, 80, 120, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 9;
+    }
+    #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* 窄屏：头像列横排上移，按钮横排去底板 */
+    @media (max-width: 900px) {
+      main { flex-direction: column; gap: 10px; }
+      .players { flex-direction: row; order: -1; }
+      .avatar { width: clamp(52px, 9vh, 72px); }
+      .board { width: min(94vw, calc(100dvh - 250px)); }
+      .actions {
+        order: 1;
+        flex-direction: row;
+        background: none;
+        padding: 0;
+      }
+      .candy-btn { width: clamp(76px, 20vw, 104px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="decor" aria-hidden="true"></div>
+
+  <header>
+    <img class="logo" src="./assets/candy-gomoku/logo.webp" alt="糖果五子棋" />
+    <div class="scoreboard" aria-label="胜局数">
+      <img src="./assets/candy-gomoku/topbar.webp" alt="胜局数：粉方 / 蓝方" />
+      <span class="score score--pink" id="score-pink">0</span>
+      <span class="score score--blue" id="score-blue">0</span>
+    </div>
+  </header>
+
+  <!-- 左侧案例说明：本页是什么、怎么做的（页面 README），底部可返回儿童象棋 -->
+  <aside class="case-note">
+    <span class="tag">// CASE 02 · 案例示例</span>
+    <h2>糖果五子棋<em>CANDY GOMOKU</em></h2>
+    <p class="lead">同一内核，换层皮肤。</p>
+    <p>本页没有写任何新规则：胜负判定、AI、音效全部复用内置五子棋引擎，只把显示层换成糖果棋盘、糖珠棋子与游戏化界面。</p>
+    <ul>
+      <li><b>规则 / AI / 音效</b><span>引用 src/games/gomoku，零改动</span></li>
+      <li><b>棋子 + 棋盘</b><span>单颗糖果素材 + 棋盘底图</span></li>
+      <li><b>页面本体</b><span>单 HTML 文件，无构建、无依赖</span></li>
+    </ul>
+    <pre>chooseMove(game, 'medium')</pre>
+    <p>换一套素材，就是另一款棋牌产品。</p>
+    <a href="https://github.com/wenlibo90/board-games/tree/main/src/games/gomoku" target="_blank" rel="noopener noreferrer">GitHub · 查看内核源码 →</a>
+
+    <div class="note-divider"></div>
+    <a class="back-case" href="./xiangqi-kids.html" title="上一个案例：儿童象棋">
+      <span class="tag">// PREV CASE · 上一个案例</span>
+      <img src="./assets/kids-xiangqi/logo.webp" alt="儿童象棋" />
+      <span class="nc-desc">萌趣棋子与木框棋盘的中国象棋 <em>←</em></span>
+    </a>
+  </aside>
+
+  <main>
+    <div class="board">
+      <canvas id="board"></canvas>
+    </div>
+
+    <div class="players">
+      <img class="avatar" id="av-pink" src="./assets/candy-gomoku/avatar-pink.webp" alt="粉方（你）" />
+      <span class="turn-pill" id="turn-pill">轮到你落子</span>
+      <img class="avatar" id="av-blue" src="./assets/candy-gomoku/avatar-blue.webp" alt="蓝方（AI）" />
+    </div>
+
+    <aside class="actions">
+      <button class="candy-btn candy-btn--start" id="btn-start" aria-label="开局"></button>
+      <button class="candy-btn candy-btn--undo" id="btn-undo" aria-label="撤回"></button>
+      <button class="candy-btn candy-btn--restart" id="btn-restart" aria-label="重来"></button>
+    </aside>
+  </main>
+
+  <div id="toast" role="status"></div>
+
+  <script type="module">
+    // 引擎 / AI / 音效全部复用共享模块：本页只做糖果皮肤的显示层
+    import { GomokuGame, BLACK, WHITE } from './src/games/gomoku/engine.js';
+    import { chooseMove } from './src/games/gomoku/ai.js';
+    import { place as playPlace, chime as playChime } from './src/core/sfx.js';
+
+    const PINK = BLACK; // 粉方先手（人）
+    const BLUE = WHITE; // 蓝方后手（AI）
+
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const avPink = document.getElementById('av-pink');
+    const avBlue = document.getElementById('av-blue');
+    const turnPill = document.getElementById('turn-pill');
+    const toastEl = document.getElementById('toast');
+    const undoBtn = document.getElementById('btn-undo');
+    const scorePinkEl = document.getElementById('score-pink');
+    const scoreBlueEl = document.getElementById('score-blue');
+
+    // 胜局数：本次会话内累计，单方最多显示 9 局
+    const wins = { [PINK]: 0, [BLUE]: 0 };
+    let resultCounted = false; // 当前这局是否已计入比分
+
+    let game = new GomokuGame(15);
+    let thinking = false;
+    let aiTimer = null;
+
+    // 素材图：棋盘底图 + 粉/蓝单颗糖果棋子
+    const boardImg = new Image();
+    const pinkImg = new Image();
+    const blueImg = new Image();
+    boardImg.src = './assets/candy-gomoku/board.webp';
+    pinkImg.src = './assets/candy-gomoku/pieces-pink.webp';
+    blueImg.src = './assets/candy-gomoku/pieces-blue.webp';
+    boardImg.onload = pinkImg.onload = blueImg.onload = paint;
+
+    const INSET = 0.10; // 网格距棋盘底图边缘的比例，留出边路棋子与粉内框的间隙
+    let W = 0, H = 0;
+
+    function resize() {
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paint();
+    }
+
+    // 第 i 个交叉点坐标（网格严格方形、居中于棋盘）
+    function pt(i, size) {
+      const gw = W * (1 - INSET * 2);
+      const gh = H * (1 - INSET * 2);
+      const cell = Math.min(gw, gh) / (size - 1);
+      const ox = W / 2 - cell * (size - 1) / 2;
+      const oy = H / 2 - cell * (size - 1) / 2;
+      return { x: ox + (i % size) * cell, y: oy + ((i / size) | 0) * cell, cell };
+    }
+
+    function paint() {
+      if (!W) return;
+      const size = game.size;
+      ctx.clearRect(0, 0, W, H);
+      // 棋盘底图（含圆角白框与粉描边，网格由本页自绘）
+      if (boardImg.complete && boardImg.naturalWidth) {
+        ctx.drawImage(boardImg, 0, 0, W, H);
+      } else {
+        ctx.fillStyle = '#fff4ea';
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // 浅粉虚线网格：横线取第 n 行首点→末点，竖线取第 n 列首点→末点
+      const g0 = pt(0, size);
+      const span = g0.cell * (size - 1);
+      ctx.strokeStyle = 'rgba(240, 150, 180, 0.55)';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([6, 7]);
+      ctx.beginPath();
+      for (let n = 0; n < size; n++) {
+        const y = g0.y + n * g0.cell;
+        const x = g0.x + n * g0.cell;
+        ctx.moveTo(g0.x, y); ctx.lineTo(g0.x + span, y);
+        ctx.moveTo(x, g0.y); ctx.lineTo(x, g0.y + span);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 糖果棋子：粉 = BLACK，蓝 = WHITE（各用单颗素材）
+      const canDrawPieces = pinkImg.complete && pinkImg.naturalWidth && blueImg.complete && blueImg.naturalWidth;
+      for (let i = 0; i < game.board.length; i++) {
+        const c = game.board[i];
+        if (!c) continue;
+        const { x, y, cell } = pt(i, size);
+        const r = cell * 0.46;
+        if (canDrawPieces) {
+          ctx.drawImage(c === BLACK ? pinkImg : blueImg, x - r, y - r, r * 2, r * 2);
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fillStyle = c === BLACK ? '#f7a8c0' : '#8ecdf0';
+          ctx.fill();
+        }
+      }
+
+      // 最后一手：白色描边圈
+      if (game.lastMove >= 0 && !game.winLine) {
+        const { x, y, cell } = pt(game.lastMove, size);
+        ctx.beginPath();
+        ctx.arc(x, y, cell * 0.46 + 2.5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+
+      // 五连金环高亮
+      if (game.winLine) {
+        for (const i of game.winLine) {
+          const { x, y, cell } = pt(i, size);
+          ctx.beginPath();
+          ctx.arc(x, y, cell * 0.46 + 2.5, 0, Math.PI * 2);
+          ctx.strokeStyle = '#f7b52c';
+          ctx.lineWidth = 3.5;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // ---------- 交互 ----------
+    canvas.addEventListener('click', (e) => {
+      if (thinking || game.ended) return;
+      const rect = canvas.getBoundingClientRect();
+      const size = game.size;
+      const { cell } = pt(0, size);
+      const ox = pt(0, size).x;
+      const oy = pt(0, size).y;
+      const gx = Math.round((e.clientX - rect.left - ox) / cell);
+      const gy = Math.round((e.clientY - rect.top - oy) / cell);
+      if (gx < 0 || gx >= size || gy < 0 || gy >= size) return;
+      const i = gy * size + gx;
+      const d = Math.hypot(e.clientX - rect.left - (ox + gx * cell), e.clientY - rect.top - (oy + gy * cell));
+      if (d > cell * 0.55) return;
+      if (!game.play(i).ok) return;
+      playPlace();
+      emphasize(PINK); // 落子强调：强调刚落子的一方（不是下一手）
+      afterMove();
+    });
+
+    function afterMove() {
+      paint();
+      updatePill();
+      undoBtn.disabled = thinking || !game.moves.length;
+      if (game.ended) {
+        playChime();
+        countResult();
+        return;
+      }
+      if (game.turn === BLUE) aiTurn();
+    }
+
+    function aiTurn() {
+      thinking = true;
+      updatePill();
+      aiTimer = setTimeout(() => {
+        aiTimer = null;
+        try {
+          const mv = chooseMove(game, 'medium');
+          if (mv >= 0 && !game.ended) {
+            game.play(mv);
+            playPlace();
+            emphasize(BLUE, 300);
+          }
+        } finally {
+          thinking = false;
+          afterMove();
+        }
+      }, 240);
+    }
+
+    // 撤回：一次撤 AI + 自己各一步，回到人回合
+    undoBtn.addEventListener('click', () => {
+      if (thinking) return;
+      if (!game.moves.length) return;
+      const countedWinner = resultCounted && game.result ? game.result.winner : 0;
+      game.undo();
+      if (!game.ended && game.turn !== PINK && game.moves.length) game.undo();
+      // 若刚撤销的是一局已判胜负的棋，比分同步回退
+      if (countedWinner === PINK || countedWinner === BLUE) {
+        wins[countedWinner] = Math.max(0, wins[countedWinner] - 1);
+        resultCounted = false;
+        updateScore();
+      }
+      playPlace();
+      clearEmphasis();
+      paint();
+      updatePill();
+      undoBtn.disabled = !game.moves.length;
+    });
+
+    // 开局 / 重来：都是重新开始
+    for (const id of ['btn-start', 'btn-restart']) {
+      document.getElementById(id).addEventListener('click', () => {
+        if (thinking) return;
+        if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+        game = new GomokuGame(15);
+        thinking = false;
+        resultCounted = false;
+        clearEmphasis();
+        paint();
+        updatePill();
+        undoBtn.disabled = true;
+        showToast('新对局开始，粉方先手');
+      });
+    }
+
+    // 记分：一局只计一次，单方上限 9
+    function countResult() {
+      if (resultCounted || !game.result) return;
+      const w = game.result.winner;
+      if (w === PINK || w === BLUE) {
+        wins[w] = Math.min(9, wins[w] + 1);
+        updateScore();
+      }
+      resultCounted = true;
+    }
+
+    function updateScore() {
+      scorePinkEl.textContent = wins[PINK];
+      scoreBlueEl.textContent = wins[BLUE];
+    }
+
+    // 落子强调：给刚落子一方的头像弹一下并短暂发光，默认 360ms 后恢复
+    let emphTimer = null;
+    function emphasize(color, duration = 360) {
+      clearEmphasis();
+      const el = color === PINK ? avPink : avBlue;
+      void el.offsetWidth; // 重置动画
+      el.classList.add('is-turn', 'is-move');
+      emphTimer = setTimeout(() => {
+        el.classList.remove('is-turn', 'is-move');
+        emphTimer = null;
+      }, duration);
+    }
+
+    function clearEmphasis() {
+      if (emphTimer) { clearTimeout(emphTimer); emphTimer = null; }
+      for (const a of [avPink, avBlue]) a.classList.remove('is-turn', 'is-move');
+    }
+
+    // 状态胶囊：只描述「现在轮到谁」，与落子强调分开表达
+    function updatePill() {
+      turnPill.classList.remove('is-ai', 'is-over');
+      if (game.ended) {
+        turnPill.classList.add('is-over');
+        turnPill.textContent = game.result ? game.result.text : '对局结束';
+      } else if (thinking) {
+        turnPill.classList.add('is-ai');
+        turnPill.textContent = 'AI 思考中…';
+      } else {
+        turnPill.textContent = '轮到你落子';
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+    }
+
+    new ResizeObserver(resize).observe(canvas.parentElement);
+    resize();
+    updatePill();
+    undoBtn.disabled = true;
+    showToast('粉方先手，点击交叉点落子');
+  </script>
+</body>
+</html>
