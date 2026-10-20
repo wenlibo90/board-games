@@ -38,6 +38,7 @@ export class Shell {
     this.$ = (id) => document.getElementById(id);
     this.homeView = this.$('home-view');
     this.homeGrid = this.$('home-grid');
+    this.homeToast = this.$('home-toast');
     this.gameView = this.$('game-view');
     this.gameTitle = this.$('game-title');
     this.gameTagline = this.$('game-tagline');
@@ -266,17 +267,34 @@ export class Shell {
       'beforeend',
       `<div class="game-card game-card--more" aria-hidden="true">
         <span class="game-card-more-tag">// NEXT</span>
-        <span class="game-card-more-text">内核逐步完善中，将推出更多棋牌</span>
+        <span class="game-card-more-text">核心代码完善中，将推出更多棋牌</span>
         <span class="game-card-more-dots"><i></i><i></i><i></i></span>
       </div>`
     );
     this.homeGrid.querySelectorAll('[data-game]').forEach((el) => {
       el.addEventListener('click', () => {
+        // 移动端预览效果不佳：首页卡片不进入对局
+        if (this._isMobile()) {
+          this._showHomeToast('移动端暂不支持进入对局，请在电脑端打开');
+          return;
+        }
         // 当前页弹窗打开，不跳转、不改变路由
         const mod = getGame(el.dataset.game);
         if (mod) this._openGame(mod);
       });
     });
+  }
+
+  _isMobile() {
+    try { return window.matchMedia('(max-width: 820px)').matches; } catch (e) { return false; }
+  }
+
+  _showHomeToast(msg) {
+    if (!this.homeToast) return;
+    this.homeToast.textContent = msg;
+    this.homeToast.classList.add('is-show');
+    clearTimeout(this._homeToastTimer);
+    this._homeToastTimer = setTimeout(() => this.homeToast.classList.remove('is-show'), 2200);
   }
 
   async _route() {
