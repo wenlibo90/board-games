@@ -12,7 +12,7 @@
 
 import { CATALOG } from './catalog.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 export const DEFAULT_DIFFICULTY = 'hard';
 
 const REGISTRY = new Map(CATALOG.map((g) => [g.id, g]));

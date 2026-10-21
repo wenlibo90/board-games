@@ -116,6 +116,51 @@
         </div>
         <a class="home-dev-cta" href="https://github.com/wenlibo90/board-games" target="_blank" rel="noopener noreferrer">Fork on GitHub →</a>
       </div>
+
+      <!-- 快速接入：外部页面一行 <script> 即可运行 -->
+      <div class="home-sdk" id="home-sdk">
+        <div class="home-sdk-head">
+          <span class="home-section-tag">// QUICK START</span>
+          <h2>一行代码快速接入</h2>
+          <p>无需构建、无需依赖，只需引用一行 <code>&lt;script&gt;</code>标签，棋盘自动出现在脚本所在处；没写皮肤，就直接渲染原始棋牌。</p>
+        </div>
+
+        <div class="home-sdk-grid">
+          <div class="home-sdk-col">
+            <div class="home-sdk-code">
+              <div class="home-sdk-code-bar">
+                <span>index.html</span>
+                <button type="button" class="home-sdk-copy" data-copy="#home-sdk-snippet">复制</button>
+              </div>
+              <pre id="home-sdk-snippet"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;棋牌 Demo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@main/sdk/arena.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+            </div>
+
+            <div class="home-sdk-attrs">
+              <span>可选参数：<code>game</code> 棋种（默认 xiangqi）· <code>size</code> 路数 · <code>side</code> 执子方 · <code>difficulty</code> AI 难度 · <code>theme</code> 主题</span>
+              <span>两种写法等价：<code>arena.js?game=gomoku</code> 或 <code>data-arena="gomoku"</code></span>
+            </div>
+
+            <a class="home-sdk-link" href="https://github.com/wenlibo90/board-games#readme" target="_blank" rel="noopener noreferrer">自定义皮肤：Arena.mount / Arena.create</a>
+          </div>
+
+          <div class="home-sdk-preview">
+            <div class="home-sdk-preview-bar">
+              <span>实时效果</span>
+              <code>?game=gomoku</code>
+            </div>
+            <div id="home-sdk-live"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 棋局弹窗：卡片点击在当前页弹窗内打开对局 -->
@@ -205,5 +250,53 @@
   </div>
 
   <script type="module" src="./src/app.js?v=37"></script>
+  <script type="module">
+    import { mount } from './src/sdk/mount.js';
+
+    const snippet = document.getElementById('home-sdk-snippet');
+    const codeText = snippet ? snippet.textContent.replace(/^\n+|\s+$/g, '') : '';
+
+    function highlight(src) {
+      const esc = src.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const re = /&lt;!DOCTYPE[^&]*&gt;|&lt;\/?[A-Za-z][\w-]*|[A-Za-z-]+(?==)|"[^"]*"|&gt;/g;
+      return esc.replace(re, (m) => {
+        if (m.startsWith('&lt;!DOCTYPE')) return `<span class="tok-doc">${m}</span>`;
+        if (m.startsWith('&lt;')) return `<span class="tok-tag">${m}</span>`;
+        if (m === '&gt;') return `<span class="tok-punc">${m}</span>`;
+        if (m.startsWith('"')) return `<span class="tok-str">${m}</span>`;
+        return `<span class="tok-attr">${m}</span>`;
+      });
+    }
+
+    if (snippet) {
+      snippet.innerHTML = highlight(codeText)
+        .split('\n')
+        .map((line) => `<span class="cl">${line || ' '}</span>`)
+        .join('');
+    }
+
+    const live = document.getElementById('home-sdk-live');
+    if (live && window.matchMedia('(min-width: 821px)').matches) {
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        mount(live, { game: 'gomoku', size: 9, difficulty: 'hard', aspect: '1 / 1' }).catch(() => {});
+      }, { rootMargin: '160px' });
+      io.observe(live);
+    }
+
+    const copy = document.querySelector('.home-sdk-copy');
+    if (copy) {
+      copy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(codeText);
+          copy.textContent = '已复制';
+        } catch (err) {
+          copy.textContent = '复制失败';
+        }
+        setTimeout(() => { copy.textContent = '复制'; }, 1600);
+      });
+    }
+  </script>
 </body>
 </html>

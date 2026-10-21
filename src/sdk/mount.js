@@ -13,11 +13,11 @@ const CSS = `
 .arena-board canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .arena-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
   margin-top: 10px; flex-wrap: wrap; }
-.arena-status { font-size: 14px; color: #c7cbd1; }
-.arena-actions { display: flex; gap: 8px; margin-left: auto; }
-.arena-btn { font: inherit; font-size: 13px; padding: 7px 14px; border-radius: 8px; cursor: pointer;
-  border: 1px solid #2f323a; background: #1b1e24; color: #e8eaed; }
-.arena-btn:hover { border-color: #4a4f59; }
+.arena-status { font-size: 13px; color: #8b96ba; letter-spacing: 0.04em; }
+.arena-actions { display: flex; gap: 16px; margin-left: auto; }
+.arena-btn { font: inherit; font-size: 13px; padding: 0; border: 0; background: none; cursor: pointer;
+  color: #8b96ba; letter-spacing: 0.04em; transition: color 0.2s ease; }
+.arena-btn:hover { color: #e8eaed; }
 .arena-err { padding: 16px; border: 1px solid #5a2222; border-radius: 10px; background: #2a1414;
   color: #ffb4b4; font-size: 13px; }
 `;
