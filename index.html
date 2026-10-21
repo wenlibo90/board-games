@@ -139,7 +139,7 @@
     &lt;title&gt;棋牌 Demo&lt;/title&gt;
 &lt;/head&gt;
 &lt;body&gt;
-&lt;script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@main/sdk/arena.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js"&gt;&lt;/script&gt;
 &lt;/body&gt;
 &lt;/html&gt;</code></pre>
             </div>
@@ -240,6 +240,7 @@
   <footer class="footer">
     <span>Neon Arena · 棋牌底层代码开源引擎 · 一套内核，主题随意定制，全平台客户端支持</span>
     <span>Copyright 2026 阿菠萝.All rights reserved.</span>
+    <button type="button" class="footer-donate" data-donate>赞赏支持</button>
   </footer>
 
   <div class="home-toast" id="home-toast" role="status" aria-live="polite"></div>
@@ -247,6 +248,34 @@
   <div class="boot-loading" id="boot-loading" aria-hidden="true">
     <span class="loading-spinner"></span>
     <span>引擎加载中</span>
+  </div>
+
+  <!-- 赞赏弹窗 -->
+  <div class="donate-modal is-hidden" id="donate-modal" role="dialog" aria-modal="true" aria-labelledby="donate-title">
+    <div class="donate-backdrop" data-donate-close></div>
+    <div class="donate-panel">
+      <button type="button" class="donate-close" data-donate-close aria-label="关闭" title="关闭 (Esc)">✕</button>
+      <span class="donate-heart" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 7.6a3.9 3.9 0 0 1 7 2.8C19 15.6 12 20 12 20Z" />
+        </svg>
+      </span>
+      <h3 class="donate-title" id="donate-title">感谢你的支持</h3>
+      <p class="donate-lead">每一份赞赏都有利于项目的持续开发与维护</p>
+      <div class="donate-qrs">
+        <figure class="donate-qr">
+          <img src="./assets/wxpay.jpg" alt="微信赞赏码" loading="lazy" />
+          <figcaption>微信赞赏</figcaption>
+          <span class="donate-tip">打开微信扫一扫</span>
+        </figure>
+        <figure class="donate-qr">
+          <img src="./assets/alipay.jpg" alt="支付宝赞赏码" loading="lazy" />
+          <figcaption>支付宝赞赏</figcaption>
+          <span class="donate-tip">打开支付宝扫一扫</span>
+        </figure>
+      </div>
+      <p class="donate-foot">赞赏完全自愿，不影响任何现有功能的使用</p>
+    </div>
   </div>
 
   <script type="module" src="./src/app.js?v=37"></script>
@@ -295,6 +324,20 @@
           copy.textContent = '复制失败';
         }
         setTimeout(() => { copy.textContent = '复制'; }, 1600);
+      });
+    }
+
+    const donate = document.getElementById('donate-modal');
+    if (donate) {
+      const closeDonate = () => donate.classList.add('is-hidden');
+      document.querySelectorAll('[data-donate]').forEach((el) => {
+        el.addEventListener('click', () => donate.classList.remove('is-hidden'));
+      });
+      donate.querySelectorAll('[data-donate-close]').forEach((el) => {
+        el.addEventListener('click', closeDonate);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !donate.classList.contains('is-hidden')) closeDonate();
       });
     }
   </script>

@@ -5,11 +5,24 @@
 本项目把 14 款经典棋牌的**底层代码（规则引擎 + 本地 AI + 教学）完全开源**：核心逻辑稳定不变，显示层（皮肤、主题、棋盘、棋子、动效、甚至整页 UI）全部外置可替换。你可以基于同一套内核，改造出 3D 象棋、儿童五子棋、国风围棋……属于你自己的棋牌产品。
 
 - **纯前端、零构建**：原生 ES Modules + Canvas，无第三方依赖、无后端，打开即玩
+- **一行接入**：外部页面引一个 JS 就能玩，没写皮肤时直接渲染原始棋牌（见下方 SDK）
 - **规则与显示解耦**：引擎只负责规则与 AI，`createGame` / `ai.move` 等契约稳定，换皮不动内核
 - **皮肤系统**：按棋种定制整页风格（`html[data-game="<id>"]` 一段 CSS 即可），支持整页自定义 UI
 - **本地 AI**：极小极大 / Alpha-Beta / 启发式，离线可玩，支持难度分档
 - **新手教学**：每个棋种内置互动课程
 - 桌面/移动端自适应，对局在当前页以弹窗打开，首页为霓虹电竞风格
+
+## 项目截图
+
+> 图片放在 `assets/screenshots/`，格式 `jpg`。
+
+| 首页 · 霓虹棋库 | 对局界面 · 中国象棋 |
+|---|---|
+| ![首页](assets/screenshots/01-home.jpg) | ![对局](assets/screenshots/02-play.jpg) |
+
+| 一行代码接入 · SDK | 儿童案例页 · 同一内核换皮肤 |
+|---|---|
+| ![SDK](assets/screenshots/03-sdk.jpg) | ![儿童案例](assets/screenshots/04-kids.jpg) |
 
 ## 棋种一览（14 款）
 
@@ -50,33 +63,101 @@ python3 -m http.server 8000
 - `bash stop.sh`：用 `ss` 提取监听端口的 PID 并结束进程
 - 服务由 `server.py` 提供：根路径返回 `index.html`、禁用目录列表、禁用缓存
 
+## 一行代码接入（SDK）
+
+不想研究源码，只想在自己页面里放一局棋？给任意 HTML 加一行即可：
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js"></script>
+```
+
+棋盘会出现在脚本所在位置，默认渲染中国象棋；没有写皮肤时直接渲染原始棋牌。
+
+换棋种与参数（查询串与 `data-*` 两种写法等价）：
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js?game=gomoku&size=15"></script>
+<script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js" data-arena="chess" data-difficulty="hard"></script>
+```
+
+| 参数 | 说明 |
+|---|---|
+| `game` / `data-arena` | 棋种 id，默认 `xiangqi` |
+| `size` / `data-size` | 棋盘路数（围棋、五子棋等） |
+| `side` / `data-side` | 执子方 |
+| `difficulty` / `data-difficulty` | AI 难度，默认 `hard` |
+| `theme` / `data-theme` | 明/暗主题 |
+
+用核心 API 自定义皮肤（加 `data-manual` 可关闭自动挂载）：
+
+```js
+const game = await Arena.create('xiangqi');
+game.state;                   // 原始引擎实例（board / hands …）
+game.legalMoves();            // 合法着法，直接传给 play()
+game.play(move);
+game.playAI({ difficulty: 'hard' });
+game.undo(); game.save(); game.load(snapshot);
+game.ended; game.result; game.turn;
+```
+
+`demo.html` 是最小用法页（本地打开即可运行）。自行构建单文件包：
+
+```bash
+npm install -g esbuild
+node tools/build-sdk.mjs
+```
+
+产物：`sdk/arena.js`（浏览器单文件）、`dist/sdk.esm.js`（按需分包）、`dist/sdk.cjs`、`dist/sdk.d.ts`。
+
 ## 目录结构
 
 ```
 .
-├── index.html                # 唯一入口（霓虹首页 + 对局弹窗 + 教学视图）
+├── index.html                # 唯一入口（霓虹首页 + 对局弹窗 + 教学视图 + 赞赏弹窗）
+├── demo.html                 # SDK 最小用法页（引用 sdk/arena.js）
+├── xiangqi-kids.html         # 儿童象棋案例页（同一内核，换皮肤）
+├── gomoku-kids.html          # 儿童五子棋案例页
+├── sdk/
+│   └── arena.js              # 单文件浏览器包（外部页面一行 <script> 即可用）
 ├── assets/
-│   ├── styles.css            # 基础样式、霓虹首页与对局外壳（明/暗主题变量）
+│   ├── styles.css            # 基础样式、霓虹首页、对局外壳与赞赏弹窗
 │   ├── skins.css             # 按棋种定制皮肤的规则（html[data-game="<id>"]）
 │   ├── logo.png              # 站点 logo（占位，可替换）
 │   ├── home-hero.webp        # 首页背景图（可替换）
 │   ├── gomoku-page.css       # 五子棋整页样式
-│   └── gomoku-page.js        # 五子棋整页脚本（自带 AI/音效/礼花/结算弹窗）
-└── src/
-    ├── app.js                # 应用入口
-    ├── core/                 # 与棋种无关的共享基础
-    │   ├── stage.js          # Canvas 舞台（DPR、尺寸、指针事件归一化）
-    │   ├── theme.js          # 明/暗主题
-    │   ├── cards.js          # 扑克牌堆/洗牌
-    │   └── cardgfx.js        # 牌面绘制与手牌布局/选择(HandUI)
-    ├── platform/             # 平台外壳
-    │   ├── shell.js          # 首页、路由(#/go)、对局弹窗外壳、侧栏生成
-    │   ├── registry.js       # 棋种注册表
-    │   └── tutorial.js       # 通用教学控制器
-    └── games/                # 各棋种自包含模块
-        ├── go/               # engine / ai / view / lessons / index
-        ├── xiangqi/          # ...
-        └── ...
+│   ├── gomoku-page.js        # 五子棋整页脚本（自带 AI/音效/礼花/结算弹窗）
+│   ├── wxpay.jpg             # 微信赞赏码
+│   ├── alipay.jpg            # 支付宝赞赏码
+│   ├── kids-xiangqi/         # 儿童象棋素材（WebP）
+│   └── screenshots/          # 项目截图（jpg）
+├── src/
+│   ├── app.js                # 应用入口
+│   ├── core/                 # 与棋种无关的共享基础
+│   │   ├── stage.js          # Canvas 舞台（DPR、尺寸、指针事件归一化）
+│   │   ├── theme.js          # 明/暗主题
+│   │   ├── cards.js          # 扑克牌堆 / 洗牌
+│   │   ├── cardgfx.js        # 牌面绘制与手牌布局/选择（HandUI）
+│   │   └── sfx.js            # 落子音效合成
+│   ├── platform/             # 平台外壳
+│   │   ├── shell.js          # 首页、路由(#/go)、对局弹窗外壳、侧栏生成
+│   │   ├── registry.js       # 棋种注册表
+│   │   ├── games-meta.js     # 轻量元数据 + 按需加载器
+│   │   └── tutorial.js       # 通用教学控制器
+│   ├── sdk/                  # 棋牌核心 SDK
+│   │   ├── index.js          # 统一门面（create / list / register / Session）
+│   │   ├── catalog.js        # 棋种清单与核心加载器
+│   │   ├── mount.js          # 默认皮肤挂载（mount / autoMount）
+│   │   ├── browser.js        # <script> 入口（零容器自动挂载）
+│   │   └── index.d.ts        # 类型声明
+│   └── games/                # 各棋种自包含模块
+│       ├── go/               # engine / ai / view / lessons / index
+│       ├── xiangqi/          # ...
+│       └── ...
+├── tools/
+│   └── build-sdk.mjs         # 构建 SDK（esbuild）
+├── server.py                 # 静态服务器（根路径返回 index.html）
+├── start.sh / stop.sh        # 启停脚本（端口 8000）
+└── README.md
 ```
 
 ## 架构与棋种契约
@@ -142,10 +223,27 @@ python3 -m http.server 8000
 - 原生 JavaScript（ES Modules）、HTML5 Canvas 2D
 - 无第三方依赖、无构建步骤、无后端
 - AI 为本地算法（极小极大/Alpha-Beta/启发式），离线可玩
+- SDK 打包仅用到 `esbuild`（全局安装，仅构建时需要）
 
 ## 部署
 
 任何静态托管均可（GitHub Pages、Vercel、Netlify、Nginx 等）。由于无需构建，直接把仓库根目录作为站点根发布即可。
+
+在线地址：https://wenlibo90.github.io/board-games/
+
+## 赞赏支持
+
+很高兴你看到了这里。
+
+这个项目从规则内核到棋盘绘制，都是业余时间一点点写出来的。如果它帮你省下了一些时间，或者你单纯的觉得它还不错，欢迎请作者喝杯咖啡——这份心意会直接变成后续的更新与打磨。
+
+| 微信赞赏 | 支付宝赞赏 |
+|---|---|
+| ![微信赞赏](assets/wxpay.jpg) | ![支付宝赞赏](assets/alipay.jpg) |
+
+打开微信扫一扫 · 打开支付宝扫一扫
+
+> 赞赏完全自愿，不影响任何现有功能的使用。
 
 ## 许可
 
