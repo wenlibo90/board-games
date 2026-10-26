@@ -68,16 +68,19 @@ python3 -m http.server 8000
 不想研究源码，只想在自己页面里放一局棋？给任意 HTML 加一行即可：
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js"></script>
+<script src="https://www.noxkit.cn/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js"></script>
 ```
 
 棋盘会出现在脚本所在位置，默认渲染中国象棋；没有写皮肤时直接渲染原始棋牌。
 
+> **备用地址（海外优选）：** `https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js`。
+> 国内访问 jsDelivr 可能不稳定，若引用后没有效果，请改用上面的 `www.noxkit.cn` 地址。
+
 换棋种与参数（查询串与 `data-*` 两种写法等价）：
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js?game=gomoku&size=15"></script>
-<script src="https://cdn.jsdelivr.net/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js" data-arena="chess" data-difficulty="hard"></script>
+<script src="https://www.noxkit.cn/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js?game=gomoku&size=15"></script>
+<script src="https://www.noxkit.cn/gh/wenlibo90/board-games@v0.2.0/sdk/arena.js" data-arena="chess" data-difficulty="hard"></script>
 ```
 
 | 参数 | 说明 |
